@@ -94,6 +94,8 @@ class GroupTagCloudSection extends TagCloudSection
             $qry .= ' LIMIT ' . $offset . ', ' . $limit;
         }
 
+        $qry = common_sql_prefix_query($qry, array('notice_tag', 'notice', 'group_inbox'));
+
         $tag = Memcached_DataObject::cachedQuery('Notice_tag',
                                                  sprintf($qry,
                                                          $this->group->id,

@@ -77,10 +77,14 @@ function omb_broadcast_notice($notice)
     /* Get remote users subscribed to this profile. */
     $rp = new Remote_profile();
 
-    $rp->query('SELECT remote_profile.*, secret, token ' .
+    $qry = 'SELECT remote_profile.*, secret, token ' .
                'FROM subscription JOIN remote_profile ' .
                'ON subscription.subscriber = remote_profile.id ' .
-               'WHERE subscription.subscribed = ' . $notice->profile_id . ' ');
+               'WHERE subscription.subscribed = ' . $notice->profile_id . ' ';
+
+    $qry = common_sql_prefix_query($qry, array('remote_profile', 'subscription'));
+
+    $rp->query($qry);
 
     $posted = array();
 
@@ -126,10 +130,14 @@ function omb_broadcast_profile($profile)
     /* Get remote users subscribed to this profile. */
     $rp = new Remote_profile();
 
-    $rp->query('SELECT remote_profile.*, secret, token ' .
+    $qry = 'SELECT remote_profile.*, secret, token ' .
                'FROM subscription JOIN remote_profile ' .
                'ON subscription.subscriber = remote_profile.id ' .
-               'WHERE subscription.subscribed = ' . $profile->id . ' ');
+               'WHERE subscription.subscribed = ' . $profile->id . ' ';
+
+    $qry = common_sql_prefix_query($qry, array('remote_profile', 'subscription'));
+
+    $rp->query($qry);
 
     $posted = array();
 

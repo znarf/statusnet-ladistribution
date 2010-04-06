@@ -80,6 +80,8 @@ class PopularNoticeSection extends NoticeSection
 
         $qry .= ' LIMIT ' . $limit . ' OFFSET ' . $offset;
 
+        $qry = common_sql_prefix_query($qry, array('notice_tag', 'notice', 'fave'));
+
         $notice = Memcached_DataObject::cachedQuery('Notice',
                                                     $qry,
                                                     1200);

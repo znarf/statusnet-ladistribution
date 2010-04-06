@@ -116,6 +116,8 @@ class Fave extends Memcached_DataObject
             $qry .= "LIMIT $limit OFFSET $offset";
         }
 
+        $qry = common_sql_prefix_query($qry, array('fave', 'notice'));
+
         $fav->query($qry);
 
         $ids = array();

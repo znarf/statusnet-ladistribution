@@ -60,6 +60,8 @@ class GroupsByPostsSection extends GroupSection
             $qry .= ' LIMIT ' . $offset . ', ' . $limit;
         }
 
+        $qry = common_sql_prefix_query($qry, array('user_group', 'group_inbox'));
+
         $group = Memcached_DataObject::cachedQuery('User_group',
                                                    $qry,
                                                    3600);

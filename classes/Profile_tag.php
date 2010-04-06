@@ -89,11 +89,13 @@ class Profile_tag extends Memcached_DataObject
     # Return profiles with a given tag
     static function getTagged($tagger, $tag) {
         $profile = new Profile();
-        $profile->query('SELECT profile.* ' .
-                        'FROM profile JOIN profile_tag ' .
-                        'ON profile.id = profile_tag.tagged ' .
-                        'WHERE profile_tag.tagger = ' . $tagger . ' ' .
-                        'AND profile_tag.tag = "' . $tag . '" ');
+        $qry = 'SELECT profile.* ' .
+               'FROM profile JOIN profile_tag ' .
+               'ON profile.id = profile_tag.tagged ' .
+               'WHERE profile_tag.tagger = ' . $tagger . ' ' .
+               'AND profile_tag.tag = "' . $tag . '" ';
+        $qry = common_sql_prefix_query($qry, array('profile', 'profile_tag'));
+        $profile->query($qry);
         $tagged = array();
         while ($profile->fetch()) {
             $tagged[] = clone($profile);

@@ -135,8 +135,8 @@ class ApiGroupListAllAction extends ApiPrivateAuthAction
     function getGroups()
     {
         $qry = 'SELECT user_group.* '.
-          'from user_group join local_group on user_group.id = local_group.group_id '.
-          'order by created desc ';
+          'FROM user_group JOIN local_group ON user_group.id = local_group.group_id '.
+          'ORDER BY created DESC ';
         $offset = intval($this->page - 1) * intval($this->count);
         $limit = intval($this->count);
         if (common_config('db', 'type') == 'pgsql') {
@@ -145,6 +145,8 @@ class ApiGroupListAllAction extends ApiPrivateAuthAction
             $qry .= ' LIMIT ' . $offset . ', ' . $limit;
         }
         $group = new User_group();
+
+        $qry = common_sql_prefix_query($qry, array('user_group'));
 
         $group->query($qry);
 

@@ -334,6 +334,8 @@ class Profile extends Memcached_DataObject
             }
         }
 
+        $qry = common_sql_prefix_query($qry, array('user_group', 'group_member'));
+
         $groups = new User_group();
 
         $cnt = $groups->query(sprintf($qry, $this->id));
@@ -369,6 +371,8 @@ class Profile extends Memcached_DataObject
             }
         }
 
+        $qry = common_sql_prefix_query($qry, array('profile', 'subscription'));
+
         $profile = new Profile();
 
         $profile->query(sprintf($qry, $this->id));
@@ -396,6 +400,8 @@ class Profile extends Memcached_DataObject
             }
         }
 
+        $qry = common_sql_prefix_query($qry, array('profile', 'subscription'));
+
         $profile = new Profile();
 
         $cnt = $profile->query(sprintf($qry, $this->id));
@@ -405,9 +411,11 @@ class Profile extends Memcached_DataObject
 
     function getApplications($offset = 0, $limit = null)
     {
+        $table_prefix = common_config('db','table_prefix');
+
         $qry =
           'SELECT a.* ' .
-          'FROM oauth_application_user u, oauth_application a ' .
+          'FROM ' . $table_prefix . 'oauth_application_user u, ' . $table_prefix . 'oauth_application a ' .
           'WHERE u.profile_id = %d ' .
           'AND a.id = u.application_id ' .
           'AND u.access_type > 0 ' .
@@ -420,6 +428,8 @@ class Profile extends Memcached_DataObject
                 $qry .= ' LIMIT ' . $offset . ', ' . $limit;
             }
         }
+
+        $qry = common_sql_prefix_query($qry);
 
         $application = new Oauth_application();
 

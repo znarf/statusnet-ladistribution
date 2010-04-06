@@ -132,13 +132,17 @@ class Inbox extends Memcached_DataObject
             return true;
         }
 
-        $result = $inbox->query(sprintf('UPDATE inbox '.
-                                        'set notice_ids = concat(cast(0x%08x as binary(4)), '.
-                                        'substr(notice_ids, 1, %d)) '.
-                                        'WHERE user_id = %d',
-                                        $notice_id,
-                                        4 * (self::MAX_NOTICES - 1),
-                                        $user_id));
+       $qry = sprintf('UPDATE ' . common_database_tablename('inbox') . ' '.
+                      'set notice_ids = concat(cast(0x%08x as binary(4)), '.
+                      'substr(notice_ids, 1, %d)) '.
+                      'WHERE user_id = %d',
+                      $notice_id,
+                      4 * (self::MAX_NOTICES - 1),
+                      $user_id);
+
+        $qry = common_sql_prefix_query($qry);
+
+        $result = $inbox->query($qry);
 
         if ($result) {
             self::blow('inbox:user_id:%d', $user_id);

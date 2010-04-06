@@ -155,12 +155,15 @@ class GalleryAction extends OwnerDesignAction
     function getTags($lst, $usr)
     {
         $profile_tag = new Notice_tag();
-        $profile_tag->query('SELECT DISTINCT(tag) ' .
-                            'FROM profile_tag, subscription ' .
-                            'WHERE tagger = ' . $this->profile->id . ' ' .
-                            'AND ' . $usr . ' = ' . $this->profile->id . ' ' .
-                            'AND ' . $lst . ' = tagged ' .
-                            'AND tagger != tagged');
+        $qry = 'SELECT DISTINCT(tag) ' .
+               'FROM profile_tag, subscription ' .
+               'WHERE tagger = ' . $this->profile->id . ' ' .
+               'AND ' . $usr . ' = ' . $this->profile->id . ' ' .
+               'AND ' . $lst . ' = tagged ' .
+               'AND tagger != tagged';
+        $qry = common_sql_prefix_query($qry, array('profile_tag', 'subscription'));
+        $profile_tag->query($qry);
+
         $tags = array();
         while ($profile_tag->fetch()) {
             $tags[] = $profile_tag->tag;

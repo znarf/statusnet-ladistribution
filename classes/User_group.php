@@ -148,6 +148,8 @@ class User_group extends Memcached_DataObject
             }
         }
 
+        $qry = common_sql_prefix_query($qry, array('profile', 'group_member'));
+
         $members = new Profile();
 
         $members->query(sprintf($qry, $this->id));
@@ -172,6 +174,8 @@ class User_group extends Memcached_DataObject
             }
         }
 
+        $qry = common_sql_prefix_query($qry, array('profile', 'group_member'));
+
         $admins = new Profile();
 
         $admins->query(sprintf($qry, $this->id));
@@ -194,6 +198,8 @@ class User_group extends Memcached_DataObject
                 $qry .= ' LIMIT ' . $offset . ', ' . $limit;
             }
         }
+
+        $qry = common_sql_prefix_query($qry, array('profile', 'group_block'));
 
         $blocked = new Profile();
 
@@ -316,16 +322,15 @@ class User_group extends Memcached_DataObject
     {
         // XXX: cache this
 
-        $user = new User();
-        if(common_config('db','quote_identifiers'))
-            $user_table = '"user"';
-        else $user_table = 'user';
+        $user_table = common_database_tablename('user');
 
         $qry =
           'SELECT id ' .
           'FROM '. $user_table .' JOIN group_member '.
           'ON '. $user_table .'.id = group_member.profile_id ' .
           'WHERE group_member.group_id = %d ';
+
+        $qry = common_sql_prefix_query($qry, array('group_member'));
 
         $user->query(sprintf($qry, $this->id));
 

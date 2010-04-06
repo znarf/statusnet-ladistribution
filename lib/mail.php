@@ -335,15 +335,17 @@ function mail_broadcast_notice_sms($notice)
 
     $user = new User();
 
-    $UT = common_config('db','type')=='pgsql'?'"user"':'user';
-    $user->query('SELECT nickname, smsemail, incomingemail ' .
-                 "FROM $UT JOIN subscription " .
-                 "ON $UT.id = subscription.subscriber " .
-                 'WHERE subscription.subscribed = ' . $notice->profile_id . ' ' .
-                 'AND subscription.subscribed != subscription.subscriber ' .
-                 "AND $UT.smsemail IS NOT null " .
-                 "AND $UT.smsnotify = 1 " .
-                 'AND subscription.sms = 1 ');
+    $user_table = common_database_tablename('user');
+    $qry = 'SELECT nickname, smsemail, incomingemail ' .
+           "FROM $user_table JOIN subscription " .
+           "ON $user_table.id = subscription.subscriber " .
+           'WHERE subscription.subscribed = ' . $notice->profile_id . ' ' .
+           'AND subscription.subscribed != subscription.subscriber ' .
+           "AND $user_table.smsemail IS NOT null " .
+           "AND $user_table.smsnotify = 1 " .
+           'AND subscription.sms = 1 ';
+    $qry = common_sql_prefix_query($qry, array('subscription'));
+    $user->query($qry);
 
     while ($user->fetch()) {
         common_log(LOG_INFO,

@@ -28,7 +28,11 @@ class Local_group extends Memcached_DataObject
     function setNickname($nickname)
     {
         $this->decache();
-        $qry = 'UPDATE local_group set nickname = "'.$nickname.'" where group_id = ' . $this->group_id;
+
+        $local_group_table = common_database_tablename('local_group');
+        $qry = 'UPDATE ' . $local_group_table . ' SET nickname = "'.$nickname.'" WHERE group_id = ' . $this->group_id;
+
+        $qry = common_sql_prefix_query($qry);
 
         $result = $this->query($qry);
 

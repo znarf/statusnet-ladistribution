@@ -54,13 +54,11 @@ class Foreign_user extends Memcached_DataObject
         }
         $toupdate = implode(', ', $parts);
 
-        $table = $this->tableName();
-        if(common_config('db','quote_identifiers')) {
-            $table = '"' . $table . '"';
-        }
-        $qry = 'UPDATE ' . $table . ' SET ' . $toupdate .
+        $foreign_user_table = common_database_tablename('foreign_user');
+        $qry = 'UPDATE ' . $foreign_user_table . ' SET ' . $toupdate .
           ' WHERE id = ' . $this->id;
         $orig->decache();
+        $qry = common_sql_prefix_query($qry);
         $result = $this->query($qry);
         if ($result) {
             $this->encache();
