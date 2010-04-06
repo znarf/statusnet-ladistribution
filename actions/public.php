@@ -228,12 +228,21 @@ class PublicAction extends Action
     {
         // $top = new TopPostersSection($this);
         // $top->show();
-        $pop = new PopularNoticeSection($this);
-        $pop->show();
-        $gbp = new GroupsByMembersSection($this);
-        $gbp->show();
-        $feat = new FeaturedUsersSection($this);
-        $feat->show();
+        if (Event::handle('StartPublicPopularNoticeSection', array($this))) {
+            $pop = new PopularNoticeSection($this);
+            $pop->show();
+            Event::handle('EndPublicPopularNoticeSection', array($this));
+        }
+        if (Event::handle('StartPublicGroupsByMembersSection', array($this))) {
+            $gbp = new GroupsByMembersSection($this);
+            $gbp->show();
+            Event::handle('EndPublicGroupsByMembersSection', array($this));
+        }
+        if (Event::handle('StartPublicFeaturedUsersSection', array($this))) {
+            $feat = new FeaturedUsersSection($this);
+            $feat->show();
+            Event::handle('EndPublicFeaturedUsersSection', array($this));
+        }
     }
 
     function showAnonymousMessage()
