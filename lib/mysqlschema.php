@@ -473,6 +473,8 @@ class MysqlSchema extends Schema
     {
         // XXX: DB engine portability -> toilet
 
+        $tableName = common_database_tablename($tableName);
+
         try {
             $td = $this->getTableDef($tableName);
         } catch (SchemaTableMissingException $e) {
