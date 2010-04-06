@@ -807,15 +807,15 @@ class Notice extends Memcached_DataObject
     {
         $user = new User();
 
-        if(common_config('db','quote_identifiers'))
-          $user_table = '"user"';
-        else $user_table = 'user';
+        $user_table = common_database_tablename('user');
 
         $qry =
           'SELECT id ' .
           'FROM '. $user_table .' JOIN subscription '.
           'ON '. $user_table .'.id = subscription.subscriber ' .
           'WHERE subscription.subscribed = %d ';
+
+        $qry = common_sql_prefix_query($qry, array('subscription'));
 
         $user->query(sprintf($qry, $this->profile_id));
 

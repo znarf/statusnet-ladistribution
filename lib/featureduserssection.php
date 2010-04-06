@@ -57,15 +57,12 @@ class FeaturedUsersSection extends ProfileSection
             $quoted[] = "'$nick'";
         }
 
-        $table = "user";
-        if(common_config('db','quote_identifiers')) {
-          $table = '"' . $table . '"';
-        }
+        $user_table = common_database_tablename('user');
 
         $qry = 'SELECT profile.* ' .
-            'FROM profile JOIN '. $table .' on profile.id = '. $table .'.id ' .
-          'WHERE '. $table .'.nickname in (' . implode(',', $quoted) . ') ' .
-          'ORDER BY profile.created DESC ';
+               'FROM profile JOIN '. $user_table .' on profile.id = '. $user_table .'.id ' .
+               'WHERE '. $user_table .'.nickname in (' . implode(',', $quoted) . ') ' .
+               'ORDER BY profile.created DESC ';
 
         $limit = PROFILES_PER_SECTION + 1;
         $offset = 0;
@@ -75,6 +72,8 @@ class FeaturedUsersSection extends ProfileSection
         } else {
             $qry .= ' LIMIT ' . $offset . ', ' . $limit;
         }
+
+        $qry = common_sql_prefix_query($qry, array('profile'));
 
         $profile = Memcached_DataObject::cachedQuery('Profile',
                                                      $qry,

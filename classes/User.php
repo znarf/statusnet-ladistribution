@@ -104,10 +104,11 @@ class User extends Memcached_DataObject
         }
         $toupdate = implode(', ', $parts);
 
-        $table = common_database_tablename($this->tableName());
-        $qry = 'UPDATE ' . $table . ' SET ' . $toupdate .
+        $user_table = common_database_tablename('user');
+        $qry = 'UPDATE ' . $user_table . ' SET ' . $toupdate .
           ' WHERE id = ' . $this->id;
         $orig->decache();
+        $qry = common_sql_prefix_query($qry);
         $result = $this->query($qry);
         if ($result) {
             $this->encache();
@@ -435,12 +436,13 @@ class User extends Memcached_DataObject
     function mutuallySubscribedUsers()
     {
         // 3-way join; probably should get cached
-        $UT = common_config('db','type')=='pgsql'?'"user"':'user';
-        $qry = "SELECT $UT.* " .
-          "FROM subscription sub1 JOIN $UT ON sub1.subscribed = $UT.id " .
-          "JOIN subscription sub2 ON $UT.id = sub2.subscriber " .
+        $user_table = common_database_tablename('user');
+        $qry = "SELECT $user_table.* " .
+          "FROM subscription sub1 JOIN $user_table ON sub1.subscribed = $user_table.id " .
+          "JOIN subscription sub2 ON $user_table.id = sub2.subscriber " .
           'WHERE sub1.subscriber = %d and sub2.subscribed = %d ' .
-          "ORDER BY $UT.nickname";
+          "ORDER BY $user_table.nickname";
+        $qry = common_sql_prefix_query($qry, array('subscription'));
         $user = new User();
         $user->query(sprintf($qry, $this->id, $this->id));
 
@@ -622,6 +624,8 @@ class User extends Memcached_DataObject
             $qry .= ' LIMIT ' . $limit . ' OFFSET ' . $offset;
         }
 
+        $qry = common_sql_prefix_query($qry, array('profile', 'subscription'));
+
         $profile = new Profile();
 
         $cnt = $profile->query(sprintf($qry, $this->id, $tag));
@@ -643,6 +647,8 @@ class User extends Memcached_DataObject
           'ORDER BY subscription.created DESC ';
 
         $qry .= ' LIMIT ' . $limit . ' OFFSET ' . $offset;
+
+        $qry = common_sql_prefix_query($qry, array('profile', 'subscription'));
 
         $profile = new Profile();
 
@@ -817,6 +823,8 @@ class User extends Memcached_DataObject
         if (!is_null($offset)) {
             $qry .= "LIMIT $limit OFFSET $offset";
         }
+
+        $qry = common_sql_prefix_query($qry, array('notice'));
 
         $ids = array();
 

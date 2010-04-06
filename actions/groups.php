@@ -112,13 +112,15 @@ class GroupsAction extends Action
         $limit  = GROUPS_PER_PAGE + 1;
 
         $qry = 'SELECT user_group.* '.
-          'from user_group join local_group on user_group.id = local_group.group_id '.
-          'order by user_group.created desc '.
-          'limit ' . $limit . ' offset ' . $offset;
+          'FROM user_group JOIN local_group ON user_group.id = local_group.group_id '.
+          'ORDER BY user_group.created DESC '.
+          'LIMIT ' . $limit . ' OFFSET ' . $offset;
 
         $groups = new User_group();
 
         $cnt = 0;
+
+        $qry = common_sql_prefix_query($qry, array('user_group', 'local_group'));
 
         $groups->query($qry);
 

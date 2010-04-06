@@ -122,6 +122,8 @@ class PeopletagAction extends Action
                 "AND tag = '%s' " .
                 'ORDER BY profile_tag.modified DESC%s';
 
+        $qry = common_sql_prefix_query($qry, array('profile', 'profile_tag'));
+
         $profile->query(sprintf($qry, $this->tag, $lim));
 
         $pl  = new ProfileList($profile, $this);

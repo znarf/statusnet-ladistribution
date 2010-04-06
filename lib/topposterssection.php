@@ -63,6 +63,8 @@ class TopPostersSection extends ProfileSection
             $qry .= ' LIMIT ' . $offset . ', ' . $limit;
         }
 
+        $qry = common_sql_prefix_query($qry, array('profile', 'notice'));
+
         $profile = Memcached_DataObject::cachedQuery('Profile',
                                                      $qry,
                                                      6 * 3600);

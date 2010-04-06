@@ -65,14 +65,20 @@ class SupAction extends Action
 
         $divider = common_sql_date(time() - $seconds);
 
-        $notice->query('SELECT profile_id, max(id) AS max_id ' .
-                       'FROM ( ' .
-                       'SELECT profile_id, id FROM notice ' .
-                        ((common_config('db','type') == 'pgsql') ?
-                       'WHERE extract(epoch from created) > (extract(epoch from now()) - ' . $seconds . ') ' :
-                       'WHERE created > "'.$divider.'" ' ) .
-                       ') AS latest ' .
-                       'GROUP BY profile_id');
+        $notice_table = common_database_tablename('notice');
+
+        $qry = 'SELECT profile_id, max(id) AS max_id ' .
+               'FROM ( ' .
+               'SELECT profile_id, id FROM ' . $notice_table . ' ' .
+               ((common_config('db','type') == 'pgsql') ?
+               'WHERE extract(epoch from created) > (extract(epoch from now()) - ' . $seconds . ') ' :
+               'WHERE created > "'.$divider.'" ' ) .
+               ') AS latest ' .
+               'GROUP BY profile_id';
+
+        $qry = common_sql_prefix_query($qry);
+
+        $notice->query($qry);
 
         $updates = array();
 
