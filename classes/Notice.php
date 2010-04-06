@@ -523,7 +523,10 @@ class Notice extends Memcached_DataObject
 
     function getUploadedAttachment() {
         $post = clone $this;
-        $query = 'select file.url as up, file.id as i from file join file_to_post on file.id = file_id where post_id=' . $post->escape($post->id) . ' and url like "%/notice/%/file"';
+        $query = 'SELECT file.url as up, file.id as i FROM file ' .
+                 'JOIN file_to_post ON file.id = file_id '.
+                 'WHERE post_id=' . $post->escape($post->id) . ' AND url LIKE "%/notice/%/file"';
+        $query = common_sql_prefix_query($query, array('file', 'file_to_post', 'notice'));
         $post->query($query);
         $post->fetch();
         if (empty($post->up) || empty($post->i)) {
@@ -537,7 +540,10 @@ class Notice extends Memcached_DataObject
 
     function hasAttachments() {
         $post = clone $this;
-        $query = "select count(file_id) as n_attachments from file join file_to_post on (file_id = file.id) join notice on (post_id = notice.id) where post_id = " . $post->escape($post->id);
+        $query = "SELECT count(file_id) as n_attachments FROM file ".
+                 "JOIN file_to_post ON (file_id = file.id) JOIN notice ON (post_id = notice.id) ".
+                 "WHERE post_id = " . $post->escape($post->id);
+        $query = common_sql_prefix_query($query, array('file', 'file_to_post', 'notice'));
         $post->query($query);
         $post->fetch();
         $n_attachments = intval($post->n_attachments);

@@ -57,7 +57,10 @@ class File extends Memcached_DataObject
     }
 
     function getAttachments($post_id) {
-        $query = "select file.* from file join file_to_post on (file_id = file.id) join notice on (post_id = notice.id) where post_id = " . $this->escape($post_id);
+        $query = "SELECT file.* FROM file " .
+                 "JOIN file_to_post ON (file_id = file.id) JOIN notice ON (post_id = notice.id) ".
+                 "WHERE post_id = " . $this->escape($post_id);
+        $query = common_sql_prefix_query($query, array('file', 'file_to_post', 'notice'));
         $this->query($query);
         $att = array();
         while ($this->fetch()) {
@@ -171,7 +174,11 @@ class File extends Memcached_DataObject
                            common_config('attachments', 'file_quota'), $fileSize);
         }
 
-        $query = "select sum(size) as total from file join file_to_post on file_to_post.file_id = file.id join notice on file_to_post.post_id = notice.id where profile_id = {$user->id} and file.url like '%/notice/%/file'";
+        $query = "SELECT sum(size) as total FROM file " .
+                 "JOIN file_to_post ON file_to_post.file_id = file.id " .
+                 "JOIN notice on file_to_post.post_id = notice.id " .
+                 "WHERE profile_id = {$user->id} AND file.url LIKE '%/notice/%/file'";
+        $query = common_sql_prefix_query($query, array('file', 'file_to_post', 'notice'));
         $this->query($query);
         $this->fetch();
         $total = $this->total + $fileSize;
@@ -179,6 +186,7 @@ class File extends Memcached_DataObject
             return sprintf(_('A file this large would exceed your user quota of %d bytes.'), common_config('attachments', 'user_quota'));
         }
         $query .= ' AND EXTRACT(month FROM file.modified) = EXTRACT(month FROM now()) and EXTRACT(year FROM file.modified) = EXTRACT(year FROM now())';
+        $query = common_sql_prefix_query($query, array('file', 'file_to_post', 'notice'));
         $this->query($query);
         $this->fetch();
         $total = $this->total + $fileSize;

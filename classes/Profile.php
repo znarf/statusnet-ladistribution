@@ -192,23 +192,25 @@ class Profile extends Memcached_DataObject
         $notice = new Notice();
 
         $query =
-          "select id from notice join notice_tag on id=notice_id where tag='".
+          "SELECT id FROM notice JOIN notice_tag ON id=notice_id WHERE tag='".
           $notice->escape($tag) .
-          "' and profile_id=" . $notice->escape($this->id);
+          "' AND profile_id=" . $notice->escape($this->id);
 
         if ($since_id != 0) {
-            $query .= " and id > $since_id";
+            $query .= " AND id > $since_id";
         }
 
         if ($max_id != 0) {
-            $query .= " and id < $max_id";
+            $query .= " AND id < $max_id";
         }
 
-        $query .= ' order by id DESC';
+        $query .= ' ORDER BY id DESC';
 
         if (!is_null($offset)) {
             $query .= " LIMIT $limit OFFSET $offset";
         }
+
+        $query = common_sql_prefix_query($query, array('notice', 'notice_tag'));
 
         $notice->query($query);
 
@@ -234,22 +236,24 @@ class Profile extends Memcached_DataObject
         if (common_config('db', 'type') == 'mysql') {
             $index = '';
             $query =
-              "select id from notice force index (notice_profile_id_idx) ".
-              "where profile_id=" . $notice->escape($this->id);
+              "SELECT id FROM notice FORCE INDEX (notice_profile_id_idx) ".
+              "WHERE profile_id=" . $notice->escape($this->id);
 
             if ($since_id != 0) {
-                $query .= " and id > $since_id";
+                $query .= " AND id > $since_id";
             }
 
             if ($max_id != 0) {
-                $query .= " and id < $max_id";
+                $query .= " AND id < $max_id";
             }
 
-            $query .= ' order by id DESC';
+            $query .= ' ORDER BY id DESC';
 
             if (!is_null($offset)) {
                 $query .= " LIMIT $limit OFFSET $offset";
             }
+
+            $query = common_sql_prefix_query($query, array('notice'));
 
             $notice->query($query);
         } else {

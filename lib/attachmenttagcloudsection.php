@@ -75,7 +75,12 @@ class AttachmentTagCloudSection extends TagCloudSection
     function getTags()
     {
         $notice_tag = new Notice_tag;
-        $query = 'select tag,count(tag) as weight from notice_tag join file_to_post on (notice_tag.notice_id=post_id) join notice on notice_id = notice.id where file_id=' . $notice_tag->escape($this->out->attachment->id) . ' group by tag order by weight desc';
+        $query = 'SELECT tag, count(tag) as weight FROM notice_tag '.
+                 'JOIN file_to_post on (notice_tag.notice_id=post_id) ' .
+                 'JOIN notice ON notice_id = notice.id ' .
+                 'WHERE file_id=' . $notice_tag->escape($this->out->attachment->id) . ' ' .
+                 'GROUP BY tag ORDER BY weight DESC';
+        $query = common_sql_prefix_query($query, array('notice_tag', 'file_to_post', 'notice'));
         $notice_tag->query($query);
         return $notice_tag;
     }
