@@ -1137,6 +1137,27 @@ function common_sql_weight($column, $dropoff)
     }
 }
 
+function common_sql_prefix_query($qry = '', $tables = array())
+{
+    $prefix = common_config('db','table_prefix');
+    if (empty($prefix)) {
+        return $qry;
+    }
+    if (strpos($qry, '/* PREFIXED */') !== false) {
+        return $qry;
+    }
+    foreach ((array)$tables as $table) {
+        $qry = str_ireplace("{$prefix}{$table}", "{$table}", $qry);
+        $qry = str_ireplace("INTO {$table} ", "INTO {$prefix}{$table} ", $qry);
+        $qry = str_ireplace("UPDATE {$table} ", "UPDATE {$prefix}{$table} ", $qry);
+        $qry = str_ireplace("FROM {$table} ", "FROM {$prefix}{$table} ", $qry);
+        $qry = str_ireplace("JOIN {$table} ", "JOIN {$prefix}{$table} ", $qry);
+        $qry = str_ireplace("{$table}.", "{$prefix}{$table}.", $qry);
+    }
+    $qry .= ' /* PREFIXED */';
+    return $qry;
+}
+
 function common_redirect($url, $code=307)
 {
     static $status = array(301 => "Moved Permanently",
@@ -1732,11 +1753,13 @@ function common_compatible_license($from, $to)
  */
 function common_database_tablename($tablename)
 {
-
-  if(common_config('db','quote_identifiers')) {
+  $prefix = common_config('db','table_prefix');
+  if (strlen($prefix) > 0 && strpos($tablename, $prefix) === false) {
+      $tablename = $prefix . $tablename;
+  }
+  if(common_config('db','quote_identifiers') || common_config('db','type') == 'pgsql') {
       $tablename = '"'. $tablename .'"';
   }
-  //table prefixes could be added here later
   return $tablename;
 }
 

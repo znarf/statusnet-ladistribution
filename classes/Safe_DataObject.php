@@ -121,6 +121,19 @@ class Safe_DataObject extends DB_DataObject
         }
     }
 
+    function __construct()
+    {
+        $prefix = common_config('db','table_prefix');
+        $this->tablename = $this->__table;
+        $this->__table = $prefix . $this->tablename;
+    }
+
+    function query($qry)
+    {
+        $qry = common_sql_prefix_query($qry, $this->tablename);
+        return parent::query($qry);
+    }
+
     /**
      * Work around memory-leak bugs...
      * Had to copy-paste the whole function in order to patch a couple lines of it.
@@ -270,6 +283,13 @@ class Safe_DataObject extends DB_DataObject
             foreach ($schemas as $ini) {
                 if (file_exists($ini) && is_file($ini)) {
                     $data = array_merge($data, parse_ini_file($ini, true));
+
+                    /* automatically add table prefixs to schema */
+                    $table_prefix = common_config('db','table_prefix');
+                    foreach ($data as $key => $values) {
+                        $data[$table_prefix . $key] = $values;
+                        unset($data[$key]);
+                    }
 
                     if (!empty($_DB_DATAOBJECT['CONFIG']['debug'])) { 
                         if (!is_readable ($ini)) {
