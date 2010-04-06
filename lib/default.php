@@ -66,6 +66,7 @@ $default =
               'class_location' => INSTALLDIR . '/classes',
               'require_prefix' => 'classes/',
               'class_prefix' => '',
+              'table_prefix' => '',
               'mirror' => null,
               'utf8' => true,
               'db_driver' => 'DB', # XXX: JanRain libs only work with DB
