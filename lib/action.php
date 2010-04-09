@@ -166,22 +166,25 @@ class Action extends HTMLOutputter // lawsuit
      */
     function showShortcutIcon()
     {
-        if (is_readable(INSTALLDIR . '/theme/' . common_config('site', 'theme') . '/favicon.ico')) {
-            $this->element('link', array('rel' => 'shortcut icon',
-                                         'href' => Theme::path('favicon.ico')));
-        } else {
-            $this->element('link', array('rel' => 'shortcut icon',
-                                         'href' => common_path('favicon.ico')));
-        }
-
-        if (common_config('site', 'mobile')) {
-            if (is_readable(INSTALLDIR . '/theme/' . common_config('site', 'theme') . '/apple-touch-icon.png')) {
-                $this->element('link', array('rel' => 'apple-touch-icon',
-                                             'href' => Theme::path('apple-touch-icon.png')));
+        if (Event::handle('StartShowShortcutIcon', array($this))) {
+            if (is_readable(INSTALLDIR . '/theme/' . common_config('site', 'theme') . '/favicon.ico')) {
+                $this->element('link', array('rel' => 'shortcut icon',
+                                             'href' => Theme::path('favicon.ico')));
             } else {
-                $this->element('link', array('rel' => 'apple-touch-icon',
-                                             'href' => common_path('apple-touch-icon.png')));
+                $this->element('link', array('rel' => 'shortcut icon',
+                                             'href' => common_path('favicon.ico')));
             }
+
+            if (common_config('site', 'mobile')) {
+                if (is_readable(INSTALLDIR . '/theme/' . common_config('site', 'theme') . '/apple-touch-icon.png')) {
+                    $this->element('link', array('rel' => 'apple-touch-icon',
+                                                 'href' => Theme::path('apple-touch-icon.png')));
+                } else {
+                    $this->element('link', array('rel' => 'apple-touch-icon',
+                                                 'href' => common_path('apple-touch-icon.png')));
+                }
+            }
+            Event::handle('EndShowShortcutIcon', array($this));
         }
     }
 
