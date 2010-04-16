@@ -286,9 +286,11 @@ class Safe_DataObject extends DB_DataObject
 
                     /* automatically add table prefixs to schema */
                     $table_prefix = common_config('db','table_prefix');
-                    foreach ($data as $key => $values) {
-                        $data[$table_prefix . $key] = $values;
-                        unset($data[$key]);
+                    if (!empty($table_prefix)) {
+                        foreach ($data as $key => $values) {
+                            $data[$table_prefix . $key] = $values;
+                            unset($data[$key]);
+                        }
                     }
 
                     if (!empty($_DB_DATAOBJECT['CONFIG']['debug'])) { 
