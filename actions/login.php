@@ -267,12 +267,13 @@ class LoginAction extends Action
                      'user name and password ' .
                      'before changing your settings.');
         } else {
-            $message = _('Login with your username and password.');
-            if (!common_config('site', 'closed')) {
-                $message .=_('Don\'t have a username yet? ' .
-                    '[Register](%%action.register%%) a new account.');
+            $prompt = _('Login with your username and password.');
+            if (!common_config('site', 'closed') && !common_config('site', 'inviteonly')) {
+                $prompt .= ' ';
+                $prompt .= _('Don\'t have a username yet? ' .
+                             '[Register](%%action.register%%) a new account.');
             }
-            return $message;
+            return $prompt;
         }
     }
 
