@@ -1168,7 +1168,8 @@ function common_sql_prefix_query($qry = '', $tables = array())
         return $qry;
     }
     foreach ((array)$tables as $table) {
-        $qry = str_ireplace("{$prefix}{$table}", "{$table}", $qry);
+        $qry = str_ireplace(" {$prefix}{$table} ", " {$table} ", $qry);
+        $qry = str_ireplace(" {$prefix}{$table}.", " {$table}.", $qry);
         $qry = str_ireplace("INTO {$table} ", "INTO {$prefix}{$table} ", $qry);
         $qry = str_ireplace("UPDATE {$table} ", "UPDATE {$prefix}{$table} ", $qry);
         $qry = str_ireplace("FROM {$table} ", "FROM {$prefix}{$table} ", $qry);
