@@ -15,7 +15,7 @@ msgstr ""
 "Project-Id-Version: StatusNet\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2010-04-20 12:20+0100\n"
-"PO-Revision-Date: 2010-04-20 12:36+0100\n"
+"PO-Revision-Date: 2010-04-20 14:19+0100\n"
 "Last-Translator: François Hodierne <francois@hodierne.net>\n"
 "Language-Team: French\n"
 "MIME-Version: 1.0\n"
@@ -173,7 +173,7 @@ msgstr "**%%site.name%%** est un service de micro-blogging."
 #: lib/action.php:827
 #, php-format
 msgid "It runs the [StatusNet](http://status.net/) microblogging software, version %s, available under the [GNU Affero General Public License](http://www.fsf.org/licensing/licenses/agpl-3.0.html)."
-msgstr "Il utilise le logiciel de micro-blogging [StatusNet](http://status.net/), version %s, disponible sous la licence [GNU Affero General Public License] (http://www.fsf.org/licensing/licenses/agpl-3.0.html)."
+msgstr "Il utilise le logiciel de micro-blogging [StatusNet](http://status.net/), version %s, disponible sous la licence [GNU Affero General Public License](http://www.fsf.org/licensing/licenses/agpl-3.0.html)."
 
 #: lib/action.php:843
 msgid "Site content license"
