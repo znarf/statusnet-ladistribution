@@ -638,7 +638,7 @@ function mail_notify_attn($user, $notice)
 
     $bestname = $sender->getBestName();
 
-    common_init_locale($user->language);
+    common_switch_locale($user->language);
 
     if ($notice->hasConversation()) {
         $conversationUrl = common_local_url('conversation',
@@ -681,7 +681,7 @@ function mail_notify_attn($user, $notice)
 
     $headers = _mail_prepare_headers('mention', $user->nickname, $sender->nickname);
 
-    common_init_locale();
+    common_switch_locale();
     mail_to_user($user, $subject, $body, $headers);
 }
 
