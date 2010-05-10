@@ -108,6 +108,8 @@ function __autoload($cls)
     }
 }
 
+spl_autoload_register('__autoload');
+
 // XXX: how many of these could be auto-loaded on use?
 // XXX: note that these files should not use config options
 // at compile time since DB config options are not yet loaded.
