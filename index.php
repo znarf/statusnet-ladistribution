@@ -37,6 +37,10 @@ define('INSTALLDIR', dirname(__FILE__));
 define('STATUSNET', true);
 define('LACONICA', true); // compatibility
 
+if (file_exists(INSTALLDIR . '/dist/prepend.php')) {
+    require_once INSTALLDIR . '/dist/prepend.php';
+}
+
 require_once INSTALLDIR . '/lib/common.php';
 
 $user = null;
