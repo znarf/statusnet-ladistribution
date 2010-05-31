@@ -29,6 +29,7 @@
  * @author   Robin Millette <millette@controlyourself.ca>
  * @author   Sarven Capadisli <csarven@controlyourself.ca>
  * @author   Tom Adams <tom@holizz.com>
+ * @copyright 2009 Free Software Foundation, Inc http://www.fsf.org
  *
  * @license  GNU Affero General Public License http://www.gnu.org/licenses/
  */
@@ -185,7 +186,7 @@ function checkMirror($action_obj, $args)
 
 function isLoginAction($action)
 {
-    static $loginActions =  array('login', 'recoverpassword', 'api', 'doc', 'register', 'publicxrds', 'otp', 'opensearch');
+    static $loginActions =  array('login', 'recoverpassword', 'api', 'doc', 'register', 'publicxrds', 'otp', 'opensearch', 'rsd');
 
     $login = null;
 

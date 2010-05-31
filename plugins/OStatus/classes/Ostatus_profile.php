@@ -726,7 +726,8 @@ class Ostatus_profile extends Memcached_DataObject
      *
      * @param string $profile_url
      * @return Ostatus_profile
-     * @throws Exception
+     * @throws Exception on various error conditions
+     * @throws OStatusShadowException if this reference would obscure a local user/group
      */
 
     public static function ensureProfileURL($profile_url, $hints=array())
@@ -813,7 +814,7 @@ class Ostatus_profile extends Memcached_DataObject
      * remote profiles.
      *
      * @return mixed Ostatus_profile or null
-     * @throws Exception for local profiles
+     * @throws OStatusShadowException for local profiles
      */
     static function getFromProfileURL($profile_url)
     {
@@ -836,7 +837,7 @@ class Ostatus_profile extends Memcached_DataObject
         $user = User::staticGet('id', $profile->id);
 
         if (!empty($user)) {
-            throw new Exception("'$profile_url' is the profile for local user '{$user->nickname}'.");
+            throw new OStatusShadowException($profile, "'$profile_url' is the profile for local user '{$user->nickname}'.");
         }
 
         // Continue discovery; it's a remote profile
@@ -1000,7 +1001,7 @@ class Ostatus_profile extends Memcached_DataObject
             return;
         }
         if (!common_valid_http_url($url)) {
-            throw new ServerException(_m("Invalid avatar URL %s"), $url);
+            throw new ServerException(sprintf(_m("Invalid avatar URL %s"), $url));
         }
 
         if ($this->isGroup()) {
@@ -1302,15 +1303,23 @@ class Ostatus_profile extends Memcached_DataObject
 
         $ok = $oprofile->insert();
 
-        if ($ok) {
-            $avatar = self::getActivityObjectAvatar($object, $hints);
-            if ($avatar) {
-                $oprofile->updateAvatar($avatar);
-            }
-            return $oprofile;
-        } else {
+        if (!$ok) {
             throw new ServerException("Can't save OStatus profile");
         }
+
+        $avatar = self::getActivityObjectAvatar($object, $hints);
+
+        if ($avatar) {
+            try {
+                $oprofile->updateAvatar($avatar);
+            } catch (Exception $ex) {
+                // Profile is saved, but Avatar is messed up. We're
+                // just going to continue.
+                common_log(LOG_WARNING, "Exception saving OStatus profile avatar: ". $ex->getMessage());
+            }
+        }
+
+        return $oprofile;
     }
 
     /**
@@ -1329,7 +1338,11 @@ class Ostatus_profile extends Memcached_DataObject
         }
         $avatar = self::getActivityObjectAvatar($object, $hints);
         if ($avatar) {
-            $this->updateAvatar($avatar);
+            try {
+                $this->updateAvatar($avatar);
+            } catch (Exception $ex) {
+                common_log(LOG_WARNING, "Exception saving OStatus profile avatar: " . $ex->getMessage());
+            }
         }
     }
 
@@ -1538,6 +1551,7 @@ class Ostatus_profile extends Memcached_DataObject
      * @param string $addr webfinger address
      * @return Ostatus_profile
      * @throws Exception on error conditions
+     * @throws OStatusShadowException if this reference would obscure a local user/group
      */
     public static function ensureWebfinger($addr)
     {
@@ -1616,9 +1630,18 @@ class Ostatus_profile extends Memcached_DataObject
                 $oprofile = self::ensureProfileURL($hints['profileurl'], $hints);
                 self::cacheSet(sprintf('ostatus_profile:webfinger:%s', $addr), $oprofile->uri);
                 return $oprofile;
+            } catch (OStatusShadowException $e) {
+                // We've ended up with a remote reference to a local user or group.
+                // @fixme ideally we should be able to say who it was so we can
+                // go back and refer to it the regular way
+                throw $e;
             } catch (Exception $e) {
                 common_log(LOG_WARNING, "Failed creating profile from profile URL '$profileUrl': " . $e->getMessage());
                 // keep looking
+                //
+                // @fixme this means an error discovering from profile page
+                // may give us a corrupt entry using the webfinger URI, which
+                // will obscure the correct page-keyed profile later on.
             }
         }
 
@@ -1720,3 +1743,24 @@ class Ostatus_profile extends Memcached_DataObject
         return $file;
     }
 }
+
+/**
+ * Exception indicating we've got a remote reference to a local user,
+ * not a remote user!
+ *
+ * If we can ue a local profile after all, it's available as $e->profile.
+ */
+class OStatusShadowException extends Exception
+{
+    public $profile;
+
+    /**
+     * @param Profile $profile
+     * @param string $message
+     */
+    function __construct($profile, $message) {
+        $this->profile = $profile;
+        parent::__construct($message);
+    }
+}
+

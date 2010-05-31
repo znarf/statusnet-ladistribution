@@ -206,12 +206,19 @@ function _mdomain($backtrace)
         if (DIRECTORY_SEPARATOR !== '/') {
             $path = strtr($path, DIRECTORY_SEPARATOR, '/');
         }
-        $cut = strpos($path, '/plugins/');
-        if ($cut) {
-            $cut += strlen('/plugins/');
+        $plug = strpos($path, '/plugins/');
+        if ($plug === false) {
+            // We're not in a plugin; return null for the default domain.
+            return null;
+        } else {
+            $cut = $plug + 9;
             $cut2 = strpos($path, '/', $cut);
-            if ($cut && $cut2) {
-                $final = substr($path, $cut, $cut2 - $cut);
+            if ($cut2) {
+                $cached[$path] = substr($path, $cut, $cut2 - $cut);
+            } else {
+                // We might be running directly from the plugins dir?
+                // If so, there's no place to store locale info.
+                return null;
             }
         }
         $cached[$path] = $final;
@@ -305,7 +312,8 @@ function get_all_languages() {
         'fi'      => array('q' => 1, 'lang' => 'fi', 'name' => 'Finnish', 'direction' => 'ltr'),
         'fa'      => array('q' => 1, 'lang' => 'fa', 'name' => 'Persian', 'direction' => 'rtl'),
         'fr-fr'   => array('q' => 1, 'lang' => 'fr', 'name' => 'French', 'direction' => 'ltr'),
-        'ga'      => array('q' => 0.5, 'lang' => 'ga', 'name' => 'Galician', 'direction' => 'ltr'),
+        'ga'      => array('q' => 0.5, 'lang' => 'ga', 'name' => 'Irish', 'direction' => 'ltr'),
+        'gl'      => array('q' => 0.8, 'lang' => 'gl', 'name' => 'Galician', 'direction' => 'ltr'),
         'he'      => array('q' => 0.5, 'lang' => 'he', 'name' => 'Hebrew', 'direction' => 'rtl'),
         'hsb'     => array('q' => 0.8, 'lang' => 'hsb', 'name' => 'Upper Sorbian', 'direction' => 'ltr'),
         'ia'      => array('q' => 0.8, 'lang' => 'ia', 'name' => 'Interlingua', 'direction' => 'ltr'),

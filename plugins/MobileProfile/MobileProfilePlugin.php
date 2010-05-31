@@ -138,6 +138,7 @@ class MobileProfilePlugin extends WAP20Plugin
                     'vodafone',
                     'wap1',
                     'wap2',
+                    'webos',
                     'windows ce'
                 );
 
@@ -234,24 +235,6 @@ class MobileProfilePlugin extends WAP20Plugin
     }
 
 
-    function onStartShowHeadElements($action)
-    {
-        // @fixme nothing appears to set a serveMobile on any action,
-        // so this is useless and spews errors. Is this supposed to be
-        // checking $this?
-        //if (!$action->serveMobile) {
-        //    return true;
-        //}
-
-        $action->showTitle();
-        $action->showShortcutIcon();
-        $action->showStylesheets();
-        $action->showFeeds();
-        $action->showDescription();
-        $action->extraHead();
-    }
-
-
     function onStartShowStatusNetStyles($action)
     {
         if (!$this->serveMobile) {
@@ -271,6 +254,10 @@ class MobileProfilePlugin extends WAP20Plugin
         } else {
             $action->cssLink('plugins/MobileProfile/mp-handheld.css',null,'handheld');
         }
+
+        // Allow other plugins to load their styles.
+        Event::handle('EndShowStatusNetStyles', array($action));
+        Event::handle('EndShowLaconicaStyles', array($action));
 
         return false;
     }

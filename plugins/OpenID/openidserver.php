@@ -23,6 +23,7 @@
  * @package   StatusNet
  * @author   Craig Andrews <candrews@integralblue.com>
  * @copyright 2008-2009 StatusNet, Inc.
+ * @copyright 2009 Free Software Foundation, Inc http://www.fsf.org
  * @license   http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
  * @link      http://status.net/
  */
@@ -43,6 +44,7 @@ require_once(INSTALLDIR.'/plugins/OpenID/User_openid_trustroot.php');
  * @category Settings
  * @package  StatusNet
  * @author   Craig Andrews <candrews@integralblue.com>
+ * @copyright 2009 Free Software Foundation, Inc http://www.fsf.org
  * @license  http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
  * @link     http://status.net/
  */
@@ -71,7 +73,7 @@ class OpenidserverAction extends Action
                 }else{
                     /* Go log in, and then come back. */
                     common_set_returnto($_SERVER['REQUEST_URI']);
-                    common_redirect(common_local_url('login'));
+                    common_redirect(common_local_url('login'), 303);
                     return;
                 }
             }else if(common_profile_url($user->nickname) == $request->identity || $request->idSelect()){
@@ -91,7 +93,7 @@ class OpenidserverAction extends Action
                         $_SESSION['openid_allow_url'] = $allowResponse->encodeToUrl();
                         $_SESSION['openid_deny_url'] = $denyResponse->encodeToUrl();
                         //ask the user to trust this trust root
-                        common_redirect(common_local_url('openidtrust'));
+                        common_redirect(common_local_url('openidtrust'), 303);
                         return;
                     }
                 }else{
@@ -103,6 +105,7 @@ class OpenidserverAction extends Action
                 $response = $this->generateDenyResponse($request);
             } else {
                 //invalid
+                // TRANS: OpenID plugin client error given trying to add an unauthorised OpenID to a user (403).
                 $this->clientError(sprintf(_m('You are not authorized to use the identity %s.'),$request->identity),$code=403);
             }
         } else {
@@ -123,6 +126,7 @@ class OpenidserverAction extends Action
             }
             $this->raw($response->body);
         }else{
+            // TRANS: OpenID plugin client error given when not getting a response for a given OpenID provider (500).
             $this->clientError(_m('Just an OpenID provider. Nothing to see here, move along...'),$code=500);
         }
     }

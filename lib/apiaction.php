@@ -28,9 +28,71 @@
  * @author    Toby Inkster <mail@tobyinkster.co.uk>
  * @author    Zach Copley <zach@status.net>
  * @copyright 2009 StatusNet, Inc.
+ * @copyright 2009 Free Software Foundation, Inc http://www.fsf.org
  * @license   http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
  * @link      http://status.net/
  */
+
+/* External API usage documentation. Please update when you change how the API works. */
+
+/*! @mainpage StatusNet REST API
+
+    @section Introduction
+
+    Some explanatory text about the API would be nice.
+
+    @section API Methods
+
+    @subsection timelinesmethods_sec Timeline Methods
+
+    @li @ref publictimeline
+    @li @ref friendstimeline
+
+    @subsection statusmethods_sec Status Methods
+
+    @li @ref statusesupdate
+
+    @subsection usermethods_sec User Methods
+
+    @subsection directmessagemethods_sec Direct Message Methods
+
+    @subsection friendshipmethods_sec Friendship Methods
+
+    @subsection socialgraphmethods_sec Social Graph Methods
+
+    @subsection accountmethods_sec Account Methods
+
+    @subsection favoritesmethods_sec Favorites Methods
+
+    @subsection blockmethods_sec Block Methods
+
+    @subsection oauthmethods_sec OAuth Methods
+
+    @subsection helpmethods_sec Help Methods
+
+    @subsection groupmethods_sec Group Methods
+
+    @page apiroot API Root
+
+    The URLs for methods referred to in this API documentation are
+    relative to the StatusNet API root. The API root is determined by the
+    site's @b server and @b path variables, which are generally specified
+    in config.php. For example:
+
+    @code
+    $config['site']['server'] = 'example.org';
+    $config['site']['path'] = 'statusnet'
+    @endcode
+
+    The pattern for a site's API root is: @c protocol://server/path/api E.g:
+
+    @c http://example.org/statusnet/api
+
+    The @b path can be empty.  In that case the API root would simply be:
+
+    @c http://example.org/api
+
+*/
 
 if (!defined('STATUSNET')) {
     exit(1);
@@ -63,8 +125,11 @@ class ApiAction extends Action
     var $count     = null;
     var $max_id    = null;
     var $since_id  = null;
+    var $source    = null;
 
     var $access    = self::READ_ONLY;  // read (default) or read-write
+
+    static $reserved_sources = array('web', 'omb', 'ostatus', 'mail', 'xmpp', 'api');
 
     /**
      * Initialization.
@@ -89,6 +154,12 @@ class ApiAction extends Action
             header('X-StatusNet-Warning: since parameter is disabled; use since_id');
         }
 
+        $this->source = $this->trimmed('source');
+
+        if (empty($this->source) || in_array($this->source, self::$reserved_sources)) {
+            $this->source = 'api';
+        }
+
         return true;
     }
 
@@ -102,6 +173,7 @@ class ApiAction extends Action
 
     function handle($args)
     {
+        header('Access-Control-Allow-Origin: *');
         parent::handle($args);
     }
 
@@ -251,7 +323,23 @@ class ApiAction extends Action
         $twitter_status['created_at'] = $this->dateTwitter($notice->created);
         $twitter_status['in_reply_to_status_id'] = ($notice->reply_to) ?
             intval($notice->reply_to) : null;
-        $twitter_status['source'] = $this->sourceLink($notice->source);
+
+        $source = null;
+
+        $ns = $notice->getSource();
+        if ($ns) {
+            if (!empty($ns->name) && !empty($ns->url)) {
+                $source = '<a href="'
+		    . htmlspecialchars($ns->url)
+		    . '" rel="nofollow">'
+		    . htmlspecialchars($ns->name)
+		    . '</a>';
+            } else {
+                $source = $ns->code;
+            }
+        }
+
+        $twitter_status['source'] = $source;
         $twitter_status['id'] = intval($notice->id);
 
         $replier_profile = null;
@@ -1065,6 +1153,7 @@ class ApiAction extends Action
             $this->initTwitterAtom();
             break;
         default:
+            // TRANS: Client error on an API request with an unsupported data format.
             $this->clientError(_('Not a supported data format.'));
             break;
         }
@@ -1093,6 +1182,7 @@ class ApiAction extends Action
             $this->endTwitterRss();
             break;
         default:
+            // TRANS: Client error on an API request with an unsupported data format.
             $this->clientError(_('Not a supported data format.'));
             break;
         }
@@ -1209,6 +1299,7 @@ class ApiAction extends Action
             $this->showJsonObjects($profile_array);
             break;
         default:
+            // TRANS: Client error on an API request with an unsupported data format.
             $this->clientError(_('Not a supported data format.'));
             return;
         }
@@ -1287,43 +1378,6 @@ class ApiAction extends Action
                 return User_group::staticGet('id', $local->group_id);
             }
         }
-    }
-
-    function sourceLink($source)
-    {
-        $source_name = _($source);
-        switch ($source) {
-        case 'web':
-        case 'xmpp':
-        case 'mail':
-        case 'omb':
-        case 'api':
-            break;
-        default:
-
-            $name = null;
-            $url  = null;
-
-            $ns = Notice_source::staticGet($source);
-
-            if ($ns) {
-                $name = $ns->name;
-                $url  = $ns->url;
-            } else {
-                $app = Oauth_application::staticGet('name', $source);
-                if ($app) {
-                    $name = $app->name;
-                    $url  = $app->source_url;
-                }
-            }
-
-            if (!empty($name) && !empty($url)) {
-                $source_name = '<a href="' . $url . '">' . $name . '</a>';
-            }
-
-            break;
-        }
-        return $source_name;
     }
 
     /**

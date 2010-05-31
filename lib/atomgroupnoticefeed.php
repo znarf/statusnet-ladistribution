@@ -50,19 +50,23 @@ class AtomGroupNoticeFeed extends AtomNoticeFeed
      * Constructor
      *
      * @param Group   $group   the group for the feed
+     * @param User    $cur     the current authenticated user, if any
      * @param boolean $indent  flag to turn indenting on or off
      *
      * @return void
      */
-    function __construct($group, $indent = true) {
-        parent::__construct($indent);
+    function __construct($group, $cur = null, $indent = true) {
+        parent::__construct($cur, $indent);
         $this->group = $group;
 
+        // TRANS: Title in atom group notice feed. %s is a group name.
         $title      = sprintf(_("%s timeline"), $group->nickname);
         $this->setTitle($title);
 
         $sitename   = common_config('site', 'name');
         $subtitle   = sprintf(
+            // TRANS: Message is used as a subtitle in atom group notice feed.
+            // TRANS: %1$s is a group name, %2$s is a site name.
             _('Updates from %1$s on %2$s!'),
             $group->nickname,
             $sitename

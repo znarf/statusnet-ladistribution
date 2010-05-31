@@ -22,7 +22,7 @@
  * @category  Plugin
  * @package   StatusNet
  * @author    Craig Andrews <candrews@integralblue.com>
- * @copyright 2009 Craig Andrews http://candrews.integralblue.com
+ * @copyright 2009 Free Software Foundation, Inc http://www.fsf.org
  * @license   http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
  * @link      http://status.net/
  */
@@ -96,7 +96,12 @@ class LdapAuthenticationPlugin extends AuthenticationPlugin
         if($entry){
             $registration_data = array();
             foreach($this->attributes as $sn_attribute=>$ldap_attribute){
-                $registration_data[$sn_attribute]=$entry->getValue($ldap_attribute,'single');
+                //ldap won't let us read a user's password,
+                //and we're going to set the password to a random string later anyways,
+                //so don't bother trying to read it.
+                if($sn_attribute != 'password'){
+                    $registration_data[$sn_attribute]=$entry->getValue($ldap_attribute,'single');
+                }
             }
             if(isset($registration_data['email']) && !empty($registration_data['email'])){
                 $registration_data['email_confirmed']=true;

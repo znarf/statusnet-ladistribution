@@ -27,6 +27,7 @@
  * @author   Craig Andrews <candrews@integralblue.com>
  * @author   Jeffery To <jeffery.to@gmail.com>
  * @author   Zach Copley <zach@controlyourself.ca>
+ * @copyright 2009 Free Software Foundation, Inc http://www.fsf.org
  * @license  GNU Affero General Public License http://www.gnu.org/licenses/
  * @link     http://status.net
  */
@@ -61,7 +62,7 @@ class AllAction extends ProfileAction
 
         if ($this->page > 1 && $this->notice->N == 0) {
             // TRANS: Server error when page not found (404)
-            $this->serverError(_('No such page'), $code = 404);
+            $this->serverError(_('No such page.'), $code = 404);
         }
 
         return true;
