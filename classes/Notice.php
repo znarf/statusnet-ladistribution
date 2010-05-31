@@ -29,6 +29,7 @@
  * @author   Robin Millette <millette@controlyourself.ca>
  * @author   Sarven Capadisli <csarven@controlyourself.ca>
  * @author   Tom Adams <tom@holizz.com>
+ * @copyright 2009 Free Software Foundation, Inc http://www.fsf.org
  * @license  GNU Affero General Public License http://www.gnu.org/licenses/
  */
 
@@ -97,15 +98,20 @@ class Notice extends Memcached_DataObject
         // For auditing purposes, save a record that the notice
         // was deleted.
 
-        $deleted = new Deleted_notice();
+        // @fixme we have some cases where things get re-run and so the
+        // insert fails.
+        $deleted = Deleted_notice::staticGet('id', $this->id);
+        if (!$deleted) {
+            $deleted = new Deleted_notice();
 
-        $deleted->id         = $this->id;
-        $deleted->profile_id = $this->profile_id;
-        $deleted->uri        = $this->uri;
-        $deleted->created    = $this->created;
-        $deleted->deleted    = common_sql_now();
+            $deleted->id         = $this->id;
+            $deleted->profile_id = $this->profile_id;
+            $deleted->uri        = $this->uri;
+            $deleted->created    = $this->created;
+            $deleted->deleted    = common_sql_now();
 
-        $deleted->insert();
+            $deleted->insert();
+        }
 
         // Clear related records
 
@@ -710,7 +716,7 @@ class Notice extends Memcached_DataObject
 
     /**
      * Is this notice part of an active conversation?
-     * 
+     *
      * @return boolean true if other messages exist in the same
      *                 conversation, false if this is the only one
      */
@@ -1178,7 +1184,7 @@ class Notice extends Memcached_DataObject
         return $groups;
     }
 
-    function asAtomEntry($namespace=false, $source=false, $author=true)
+    function asAtomEntry($namespace=false, $source=false, $author=true, $cur=null)
     {
         $profile = $this->getProfile();
 
@@ -1191,7 +1197,8 @@ class Notice extends Memcached_DataObject
                            'xmlns:activity' => 'http://activitystrea.ms/spec/1.0/',
                            'xmlns:media' => 'http://purl.org/syndication/atommedia',
                            'xmlns:poco' => 'http://portablecontacts.net/spec/1.0',
-                           'xmlns:ostatus' => 'http://ostatus.org/schema/1.0');
+                           'xmlns:ostatus' => 'http://ostatus.org/schema/1.0',
+                           'xmlns:statusnet' => 'http://status.net/ont/');
         } else {
             $attrs = array();
         }
@@ -1238,6 +1245,28 @@ class Notice extends Memcached_DataObject
 
         $xs->element('published', null, common_date_w3dtf($this->created));
         $xs->element('updated', null, common_date_w3dtf($this->created));
+
+        $noticeInfoAttr = array(
+            'local_id'   => $this->id,    // local notice ID (useful to clients for ordering)
+            'source'     => $this->source, // the client name (source attribution)
+        );
+
+        $ns = $this->getSource();
+        if ($ns) {
+            if (!empty($ns->url)) {
+                $noticeInfoAttr['source_link'] = $ns->url;
+            }
+        }
+
+        if (!empty($cur)) {
+            $noticeInfoAttr['favorite'] = ($cur->hasFave($this)) ? "true" : "false";
+        }
+
+        if (!empty($this->repeat_of)) {
+            $noticeInfoAttr['repeat_of'] = $this->repeat_of;
+        }
+
+        $xs->element('statusnet:notice_info', $noticeInfoAttr, null);
 
         if ($this->reply_to) {
             $reply_notice = Notice::staticGet('id', $this->reply_to);
@@ -1805,4 +1834,41 @@ class Notice extends Memcached_DataObject
 
         return $result;
     }
+
+    /**
+     * Get the source of the notice
+     *
+     * @return Notice_source $ns A notice source object. 'code' is the only attribute
+     *                           guaranteed to be populated.
+     */
+    function getSource()
+    {
+        $ns = new Notice_source();
+        if (!empty($this->source)) {
+            switch ($this->source) {
+            case 'web':
+            case 'xmpp':
+            case 'mail':
+            case 'omb':
+            case 'system':
+            case 'api':
+                $ns->code = $this->source;
+                break;
+            default:
+                $ns = Notice_source::staticGet($this->source);
+                if (!$ns) {
+                    $ns = new Notice_source();
+                    $ns->code = $this->source;
+                    $app = Oauth_application::staticGet('name', $this->source);
+                    if ($app) {
+                        $ns->name = $app->name;
+                        $ns->url  = $app->source_url;
+                    }
+                }
+                break;
+            }
+        }
+        return $ns;
+    }
+
 }

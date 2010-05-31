@@ -29,6 +29,7 @@
  * @author    Robin Millette <robin@millette.info>
  * @author    Zach Copley <zach@status.net>
  * @copyright 2009-2010 StatusNet, Inc.
+ * @copyright 2009 Free Software Foundation, Inc http://www.fsf.org
  * @license   http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
  * @link      http://status.net/
  */
@@ -155,8 +156,6 @@ class ApiStatusesUpdateAction extends ApiAuthAction
     var $lat                   = null;
     var $lon                   = null;
 
-    static $reserved_sources = array('web', 'omb', 'mail', 'xmpp', 'api');
-
     /**
      * Take arguments for running
      *
@@ -171,18 +170,8 @@ class ApiStatusesUpdateAction extends ApiAuthAction
         parent::prepare($args);
 
         $this->status = $this->trimmed('status');
-        $this->source = $this->trimmed('source');
         $this->lat    = $this->trimmed('lat');
         $this->lon    = $this->trimmed('long');
-
-        // try to set the source attr from OAuth app
-        if (empty($this->source)) {
-            $this->source = $this->oauth_source;
-        }
-
-        if (empty($this->source) || in_array($this->source, self::$reserved_sources)) {
-            $this->source = 'api';
-        }
 
         $this->in_reply_to_status_id
             = intval($this->trimmed('in_reply_to_status_id'));

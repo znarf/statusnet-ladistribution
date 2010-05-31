@@ -28,6 +28,7 @@
  * @author    Toby Inkster <mail@tobyinkster.co.uk>
  * @author    Zach Copley <zach@status.net>
  * @copyright 2009 StatusNet, Inc.
+ * @copyright 2009 Free Software Foundation, Inc http://www.fsf.org
  * @license   http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
  * @link      http://status.net/
  */
@@ -124,8 +125,11 @@ class ApiAction extends Action
     var $count     = null;
     var $max_id    = null;
     var $since_id  = null;
+    var $source    = null;
 
     var $access    = self::READ_ONLY;  // read (default) or read-write
+
+    static $reserved_sources = array('web', 'omb', 'ostatus', 'mail', 'xmpp', 'api');
 
     /**
      * Initialization.
@@ -148,6 +152,12 @@ class ApiAction extends Action
 
         if ($this->arg('since')) {
             header('X-StatusNet-Warning: since parameter is disabled; use since_id');
+        }
+
+        $this->source = $this->trimmed('source');
+
+        if (empty($this->source) || in_array($this->source, self::$reserved_sources)) {
+            $this->source = 'api';
         }
 
         return true;
@@ -313,7 +323,23 @@ class ApiAction extends Action
         $twitter_status['created_at'] = $this->dateTwitter($notice->created);
         $twitter_status['in_reply_to_status_id'] = ($notice->reply_to) ?
             intval($notice->reply_to) : null;
-        $twitter_status['source'] = $this->sourceLink($notice->source);
+
+        $source = null;
+
+        $ns = $notice->getSource();
+        if ($ns) {
+            if (!empty($ns->name) && !empty($ns->url)) {
+                $source = '<a href="'
+		    . htmlspecialchars($ns->url)
+		    . '" rel="nofollow">'
+		    . htmlspecialchars($ns->name)
+		    . '</a>';
+            } else {
+                $source = $ns->code;
+            }
+        }
+
+        $twitter_status['source'] = $source;
         $twitter_status['id'] = intval($notice->id);
 
         $replier_profile = null;
@@ -1352,43 +1378,6 @@ class ApiAction extends Action
                 return User_group::staticGet('id', $local->group_id);
             }
         }
-    }
-
-    function sourceLink($source)
-    {
-        $source_name = _($source);
-        switch ($source) {
-        case 'web':
-        case 'xmpp':
-        case 'mail':
-        case 'omb':
-        case 'api':
-            break;
-        default:
-
-            $name = null;
-            $url  = null;
-
-            $ns = Notice_source::staticGet($source);
-
-            if ($ns) {
-                $name = $ns->name;
-                $url  = $ns->url;
-            } else {
-                $app = Oauth_application::staticGet('name', $source);
-                if ($app) {
-                    $name = $app->name;
-                    $url  = $app->source_url;
-                }
-            }
-
-            if (!empty($name) && !empty($url)) {
-                $source_name = '<a href="' . $url . '">' . $name . '</a>';
-            }
-
-            break;
-        }
-        return $source_name;
     }
 
     /**
