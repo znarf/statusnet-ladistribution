@@ -963,7 +963,8 @@ function common_relative_profile($sender, $nickname, $dt=null)
     // Try to find profiles this profile is subscribed to that have this nickname
     $recipient = new Profile();
     // XXX: use a join instead of a subquery
-    $recipient->whereAdd('EXISTS (SELECT subscribed from subscription where subscriber = '.$sender->id.' and subscribed = id)', 'AND');
+    $subscription_table = common_database_tablename('subscription');
+    $recipient->whereAdd('EXISTS (SELECT subscribed from ' . $subscription_table . ' where subscriber = '.$sender->id.' and subscribed = id)', 'AND');
     $recipient->whereAdd("nickname = '" . trim($nickname) . "'", 'AND');
     if ($recipient->find(true)) {
         // XXX: should probably differentiate between profiles with
@@ -973,7 +974,7 @@ function common_relative_profile($sender, $nickname, $dt=null)
     // Try to find profiles that listen to this profile and that have this nickname
     $recipient = new Profile();
     // XXX: use a join instead of a subquery
-    $recipient->whereAdd('EXISTS (SELECT subscriber from subscription where subscribed = '.$sender->id.' and subscriber = id)', 'AND');
+    $recipient->whereAdd('EXISTS (SELECT subscriber from ' . $subscription_table . ' where subscribed = '.$sender->id.' and subscriber = id)', 'AND');
     $recipient->whereAdd("nickname = '" . trim($nickname) . "'", 'AND');
     if ($recipient->find(true)) {
         // XXX: should probably differentiate between profiles with
