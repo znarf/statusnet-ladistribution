@@ -156,6 +156,21 @@ class User_group extends Memcached_DataObject
         return $members;
     }
 
+    function getMemberCount()
+    {
+        // XXX: WORM cache this
+
+        $members = $this->getMembers();
+        $member_count = 0;
+
+        /** $member->count() doesn't work. */
+        while ($members->fetch()) {
+            $member_count++;
+        }
+
+        return $member_count;
+    }
+
     function getAdmins($offset=0, $limit=null)
     {
         $qry =
