@@ -145,9 +145,11 @@ function oid_authenticate($openid_url, $returnto, $immediate=false)
 
     // Handle failure status return values.
     if (!$auth_request) {
+        common_log(LOG_ERR, __METHOD__ . ": mystery fail contacting $openid_url");
         // TRANS: OpenID plugin message. Given when an OpenID is not valid.
         return _m('Not a valid OpenID.');
     } else if (Auth_OpenID::isFailure($auth_request)) {
+        common_log(LOG_ERR, __METHOD__ . ": OpenID fail to $openid_url: $auth_request->message");
         // TRANS: OpenID plugin server error. Given when the OpenID authentication request fails.
         // TRANS: %s is the failure message.
         return sprintf(_m('OpenID failure: %s'), $auth_request->message);
@@ -180,7 +182,19 @@ function oid_authenticate($openid_url, $returnto, $immediate=false)
     $trust_root = common_root_url(true);
     $process_url = common_local_url($returnto);
 
-    if ($auth_request->shouldSendRedirect()) {
+    // Net::OpenID::Server as used on LiveJournal appears to incorrectly
+    // reject POST requests for data submissions that OpenID 1.1 specs
+    // as GET, although 2.0 allows them:
+    // https://rt.cpan.org/Public/Bug/Display.html?id=42202
+    //
+    // Our OpenID libraries would have switched in the redirect automatically
+    // if it were detecting 1.1 compatibility mode, however the server is
+    // advertising itself as 2.0-compatible, so we got switched to the POST.
+    //
+    // Since the GET should always work anyway, we'll just take out the
+    // autosubmitter for now.
+    // 
+    //if ($auth_request->shouldSendRedirect()) {
         $redirect_url = $auth_request->redirectURL($trust_root,
                                                    $process_url,
                                                    $immediate);
@@ -192,6 +206,7 @@ function oid_authenticate($openid_url, $returnto, $immediate=false)
         } else {
             common_redirect($redirect_url, 303);
         }
+    /*
     } else {
         // Generate form markup and render it.
         $form_id = 'openid_message';
@@ -217,6 +232,7 @@ function oid_authenticate($openid_url, $returnto, $immediate=false)
             $action->handle(array('action' => 'autosubmit'));
         }
     }
+    */
 }
 
 # Half-assed attempt at a module-private function

@@ -31,11 +31,11 @@
 class XRD
 {
     const XML_NS = 'http://www.w3.org/2000/xmlns/';
-    
+
     const XRD_NS = 'http://docs.oasis-open.org/ns/xri/xrd-1.0';
 
     const HOST_META_NS = 'http://host-meta.net/xrd/1.0';
-    
+
     public $expires;
 
     public $subject;
@@ -43,11 +43,11 @@ class XRD
     public $host;
 
     public $alias = array();
-    
+
     public $types = array();
-    
+
     public $links = array();
-    
+
     public static function parse($xml)
     {
         $xrd = new XRD();
@@ -61,11 +61,11 @@ class XRD
         error_reporting($old);
 
         if (!$ok) {
-            throw new Exception("Invalid XML");
+            throw new Exception("Invalid XML.");
         }
         $xrd_element = $dom->getElementsByTagName('XRD')->item(0);
         if (!$xrd_element) {
-            throw new Exception("Invalid XML, missing XRD root");
+            throw new Exception("Invalid XML, missing XRD root.");
         }
 
         // Check for host-meta host
@@ -86,7 +86,7 @@ class XRD
             case 'Subject':
                 $xrd->subject = $node->nodeValue;
                 break;
-                
+
             case 'Alias':
                 $xrd->alias[] = $node->nodeValue;
                 break;
@@ -106,51 +106,50 @@ class XRD
 
     public function toXML()
     {
-        $dom = new DOMDocument('1.0', 'UTF-8');
-        $dom->formatOutput = true;
-        
-        $xrd_dom = $dom->createElementNS(XRD::XRD_NS, 'XRD');
-        $dom->appendChild($xrd_dom);
+        $xs = new XMLStringer();
+
+        $xs->startXML();
+        $xs->elementStart('XRD', array('xmlns' => XRD::XRD_NS));
 
         if ($this->host) {
-            $host_dom = $dom->createElement('hm:Host', $this->host);
-            $xrd_dom->setAttributeNS(XRD::XML_NS, 'xmlns:hm', XRD::HOST_META_NS);
-            $xrd_dom->appendChild($host_dom);
+            $xs->element('hm:Host', array('xmlns:hm' => XRD::HOST_META_NS), $this->host);
         }
-        
-		if ($this->expires) {
-			$expires_dom = $dom->createElement('Expires', $this->expires);
-			$xrd_dom->appendChild($expires_dom);
-		}
 
-		if ($this->subject) {
-			$subject_dom = $dom->createElement('Subject', $this->subject);
-			$xrd_dom->appendChild($subject_dom);
-		}
+        if ($this->expires) {
+            $xs->element('Expires', null, $this->expires);
+        }
 
-		foreach ($this->alias as $alias) {
-			$alias_dom = $dom->createElement('Alias', $alias);
-			$xrd_dom->appendChild($alias_dom);
-		}
+        if ($this->subject) {
+            $xs->element('Subject', null, $this->subject);
+        }
 
-		foreach ($this->types as $type) {
-			$type_dom = $dom->createElement('Type', $type);
-			$xrd_dom->appendChild($type_dom);
-		}
+        foreach ($this->alias as $alias) {
+            $xs->element('Alias', null, $alias);
+        }
 
-		foreach ($this->links as $link) {
-			$link_dom = $this->saveLink($dom, $link);
-			$xrd_dom->appendChild($link_dom);
-		}
+        foreach ($this->links as $link) {
+            $titles = array();
+            if (isset($link['title'])) {
+                $titles = $link['title'];
+                unset($link['title']);
+            }
+            $xs->elementStart('Link', $link);
+            foreach ($titles as $title) {
+                $xs->element('Title', null, $title);
+            }
+            $xs->elementEnd('Link');
+        }
 
-        return $dom->saveXML();
+        $xs->elementEnd('XRD');
+
+        return $xs->getString();
     }
 
     function parseType($element)
     {
         return array();
     }
-    
+
     function parseLink($element)
     {
         $link = array();
@@ -169,32 +168,4 @@ class XRD
 
         return $link;
     }
-
-    function saveLink($doc, $link)
-    {
-        $link_element = $doc->createElement('Link');
-        if (!empty($link['rel'])) {
-            $link_element->setAttribute('rel', $link['rel']);
-        }
-        if (!empty($link['type'])) {
-            $link_element->setAttribute('type', $link['type']);
-        }
-        if (!empty($link['href'])) {
-            $link_element->setAttribute('href', $link['href']);
-        }
-        if (!empty($link['template'])) {
-            $link_element->setAttribute('template', $link['template']);
-        }
-
-        if (!empty($link['title']) && is_array($link['title'])) {
-            foreach($link['title'] as $title) {
-                $title = $doc->createElement('Title', $title);
-                $link_element->appendChild($title);
-            }
-        }
-
-        
-        return $link_element;
-    }
 }
-

@@ -27,7 +27,7 @@
  * @author    Jeffery To <jeffery.to@gmail.com>
  * @author    Toby Inkster <mail@tobyinkster.co.uk>
  * @author    Zach Copley <zach@status.net>
- * @copyright 2009 StatusNet, Inc.
+ * @copyright 2009-2010 StatusNet, Inc.
  * @copyright 2009 Free Software Foundation, Inc http://www.fsf.org
  * @license   http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
  * @link      http://status.net/
@@ -112,7 +112,6 @@ if (!defined('STATUSNET')) {
  * @license  http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
  * @link     http://status.net/
  */
-
 class ApiAction extends Action
 {
     const READ_ONLY  = 1;
@@ -126,6 +125,7 @@ class ApiAction extends Action
     var $max_id    = null;
     var $since_id  = null;
     var $source    = null;
+    var $callback  = null;
 
     var $access    = self::READ_ONLY;  // read (default) or read-write
 
@@ -138,13 +138,13 @@ class ApiAction extends Action
      *
      * @return boolean false if user doesn't exist
      */
-
     function prepare($args)
     {
         StatusNet::setApi(true); // reduce exception reports to aid in debugging
         parent::prepare($args);
 
         $this->format   = $this->arg('format');
+        $this->callback = $this->arg('callback');
         $this->page     = (int)$this->arg('page', 1);
         $this->count    = (int)$this->arg('count', 20);
         $this->max_id   = (int)$this->arg('max_id', 0);
@@ -170,7 +170,6 @@ class ApiAction extends Action
      *
      * @return void
      */
-
     function handle($args)
     {
         header('Access-Control-Allow-Origin: *');
@@ -271,11 +270,13 @@ class ApiAction extends Action
 
         // Is the requesting user following this user?
         $twitter_user['following'] = false;
+        $twitter_user['statusnet:blocking'] = false;
         $twitter_user['notifications'] = false;
 
         if (isset($this->auth_user)) {
 
             $twitter_user['following'] = $this->auth_user->isSubscribed($profile);
+            $twitter_user['statusnet:blocking']  = $this->auth_user->hasBlocked($profile);
 
             // Notifications on?
             $sub = Subscription::pkeyGet(array('subscriber' =>
@@ -294,6 +295,10 @@ class ApiAction extends Action
                 $twitter_user['status'] = $this->twitterStatusArray($notice, false);
             }
         }
+
+        // StatusNet-specific
+
+        $twitter_user['statusnet_profile_url'] = $profile->profileurl;
 
         return $twitter_user;
     }
@@ -396,25 +401,41 @@ class ApiAction extends Action
             $twitter_status['user'] = $twitter_user;
         }
 
+        // StatusNet-specific
+
+        $twitter_status['statusnet_html'] = $notice->rendered;
+
         return $twitter_status;
     }
 
     function twitterGroupArray($group)
     {
-        $twitter_group=array();
-        $twitter_group['id']=$group->id;
-        $twitter_group['url']=$group->permalink();
-        $twitter_group['nickname']=$group->nickname;
-        $twitter_group['fullname']=$group->fullname;
-        $twitter_group['original_logo']=$group->original_logo;
-        $twitter_group['homepage_logo']=$group->homepage_logo;
-        $twitter_group['stream_logo']=$group->stream_logo;
-        $twitter_group['mini_logo']=$group->mini_logo;
-        $twitter_group['homepage']=$group->homepage;
-        $twitter_group['description']=$group->description;
-        $twitter_group['location']=$group->location;
-        $twitter_group['created']=$this->dateTwitter($group->created);
-        $twitter_group['modified']=$this->dateTwitter($group->modified);
+        $twitter_group = array();
+
+        $twitter_group['id'] = $group->id;
+        $twitter_group['url'] = $group->permalink();
+        $twitter_group['nickname'] = $group->nickname;
+        $twitter_group['fullname'] = $group->fullname;
+
+        if (isset($this->auth_user)) {
+            $twitter_group['member'] = $this->auth_user->isMember($group);
+            $twitter_group['blocked'] = Group_block::isBlocked(
+                $group,
+                $this->auth_user->getProfile()
+            );
+        }
+
+        $twitter_group['member_count'] = $group->getMemberCount();
+        $twitter_group['original_logo'] = $group->original_logo;
+        $twitter_group['homepage_logo'] = $group->homepage_logo;
+        $twitter_group['stream_logo'] = $group->stream_logo;
+        $twitter_group['mini_logo'] = $group->mini_logo;
+        $twitter_group['homepage'] = $group->homepage;
+        $twitter_group['description'] = $group->description;
+        $twitter_group['location'] = $group->location;
+        $twitter_group['created'] = $this->dateTwitter($group->created);
+        $twitter_group['modified'] = $this->dateTwitter($group->modified);
+
         return $twitter_group;
     }
 
@@ -438,65 +459,71 @@ class ApiAction extends Action
 
     function twitterRssEntryArray($notice)
     {
-        $profile = $notice->getProfile();
         $entry = array();
 
-        // We trim() to avoid extraneous whitespace in the output
+        if (Event::handle('StartRssEntryArray', array($notice, &$entry))) {
 
-        $entry['content'] = common_xml_safe_str(trim($notice->rendered));
-        $entry['title'] = $profile->nickname . ': ' . common_xml_safe_str(trim($notice->content));
-        $entry['link'] = common_local_url('shownotice', array('notice' => $notice->id));
-        $entry['published'] = common_date_iso8601($notice->created);
+            $profile = $notice->getProfile();
 
-        $taguribase = TagURI::base();
-        $entry['id'] = "tag:$taguribase:$entry[link]";
+            // We trim() to avoid extraneous whitespace in the output
 
-        $entry['updated'] = $entry['published'];
-        $entry['author'] = $profile->getBestName();
+            $entry['content'] = common_xml_safe_str(trim($notice->rendered));
+            $entry['title'] = $profile->nickname . ': ' . common_xml_safe_str(trim($notice->content));
+            $entry['link'] = common_local_url('shownotice', array('notice' => $notice->id));
+            $entry['published'] = common_date_iso8601($notice->created);
 
-        // Enclosures
-        $attachments = $notice->attachments();
-        $enclosures = array();
+            $taguribase = TagURI::base();
+            $entry['id'] = "tag:$taguribase:$entry[link]";
 
-        foreach ($attachments as $attachment) {
-            $enclosure_o=$attachment->getEnclosure();
-            if ($enclosure_o) {
-                 $enclosure = array();
-                 $enclosure['url'] = $enclosure_o->url;
-                 $enclosure['mimetype'] = $enclosure_o->mimetype;
-                 $enclosure['size'] = $enclosure_o->size;
-                 $enclosures[] = $enclosure;
+            $entry['updated'] = $entry['published'];
+            $entry['author'] = $profile->getBestName();
+
+            // Enclosures
+            $attachments = $notice->attachments();
+            $enclosures = array();
+
+            foreach ($attachments as $attachment) {
+                $enclosure_o=$attachment->getEnclosure();
+                if ($enclosure_o) {
+                    $enclosure = array();
+                    $enclosure['url'] = $enclosure_o->url;
+                    $enclosure['mimetype'] = $enclosure_o->mimetype;
+                    $enclosure['size'] = $enclosure_o->size;
+                    $enclosures[] = $enclosure;
+                }
             }
-        }
 
-        if (!empty($enclosures)) {
-            $entry['enclosures'] = $enclosures;
-        }
-
-        // Tags/Categories
-        $tag = new Notice_tag();
-        $tag->notice_id = $notice->id;
-        if ($tag->find()) {
-            $entry['tags']=array();
-            while ($tag->fetch()) {
-                $entry['tags'][]=$tag->tag;
+            if (!empty($enclosures)) {
+                $entry['enclosures'] = $enclosures;
             }
-        }
-        $tag->free();
 
-        // RSS Item specific
-        $entry['description'] = $entry['content'];
-        $entry['pubDate'] = common_date_rfc2822($notice->created);
-        $entry['guid'] = $entry['link'];
+            // Tags/Categories
+            $tag = new Notice_tag();
+            $tag->notice_id = $notice->id;
+            if ($tag->find()) {
+                $entry['tags']=array();
+                while ($tag->fetch()) {
+                    $entry['tags'][]=$tag->tag;
+                }
+            }
+            $tag->free();
 
-        if (isset($notice->lat) && isset($notice->lon)) {
-            // This is the format that GeoJSON expects stuff to be in.
-            // showGeoRSS() below uses it for XML output, so we reuse it
-            $entry['geo'] = array('type' => 'Point',
-                                  'coordinates' => array((float) $notice->lat,
-                                                         (float) $notice->lon));
-        } else {
-            $entry['geo'] = null;
+            // RSS Item specific
+            $entry['description'] = $entry['content'];
+            $entry['pubDate'] = common_date_rfc2822($notice->created);
+            $entry['guid'] = $entry['link'];
+
+            if (isset($notice->lat) && isset($notice->lon)) {
+                // This is the format that GeoJSON expects stuff to be in.
+                // showGeoRSS() below uses it for XML output, so we reuse it
+                $entry['geo'] = array('type' => 'Point',
+                                      'coordinates' => array((float) $notice->lat,
+                                                             (float) $notice->lon));
+            } else {
+                $entry['geo'] = null;
+            }
+
+            Event::handle('EndRssEntryArray', array($notice, &$entry));
         }
 
         return $entry;
@@ -563,9 +590,13 @@ class ApiAction extends Action
         }
     }
 
-    function showTwitterXmlStatus($twitter_status, $tag='status')
+    function showTwitterXmlStatus($twitter_status, $tag='status', $namespaces=false)
     {
-        $this->elementStart($tag);
+        $attrs = array();
+        if ($namespaces) {
+            $attrs['xmlns:statusnet'] = 'http://status.net/schema/api/1/';
+        }
+        $this->elementStart($tag, $attrs);
         foreach($twitter_status as $element => $value) {
             switch ($element) {
             case 'user':
@@ -584,7 +615,11 @@ class ApiAction extends Action
                 $this->showTwitterXmlStatus($value, 'retweeted_status');
                 break;
             default:
-                $this->element($element, null, $value);
+                if (strncmp($element, 'statusnet_', 10) == 0) {
+                    $this->element('statusnet:'.substr($element, 10), null, $value);
+                } else {
+                    $this->element($element, null, $value);
+                }
             }
         }
         $this->elementEnd($tag);
@@ -599,12 +634,18 @@ class ApiAction extends Action
         $this->elementEnd('group');
     }
 
-    function showTwitterXmlUser($twitter_user, $role='user')
+    function showTwitterXmlUser($twitter_user, $role='user', $namespaces=false)
     {
-        $this->elementStart($role);
+        $attrs = array();
+        if ($namespaces) {
+            $attrs['xmlns:statusnet'] = 'http://status.net/schema/api/1/';
+        }
+        $this->elementStart($role, $attrs);
         foreach($twitter_user as $element => $value) {
             if ($element == 'status') {
                 $this->showTwitterXmlStatus($twitter_user['status']);
+            } else if (strncmp($element, 'statusnet_', 10) == 0) {
+                $this->element('statusnet:'.substr($element, 10), null, $value);
             } else {
                 $this->element($element, null, $value);
             }
@@ -683,7 +724,7 @@ class ApiAction extends Action
     {
         $this->initDocument('xml');
         $twitter_status = $this->twitterStatusArray($notice);
-        $this->showTwitterXmlStatus($twitter_status);
+        $this->showTwitterXmlStatus($twitter_status, 'status', true);
         $this->endDocument('xml');
     }
 
@@ -699,17 +740,20 @@ class ApiAction extends Action
     {
 
         $this->initDocument('xml');
-        $this->elementStart('statuses', array('type' => 'array'));
+        $this->elementStart('statuses', array('type' => 'array',
+                                              'xmlns:statusnet' => 'http://status.net/schema/api/1/'));
 
         if (is_array($notice)) {
-            foreach ($notice as $n) {
-                $twitter_status = $this->twitterStatusArray($n);
-                $this->showTwitterXmlStatus($twitter_status);
-            }
-        } else {
-            while ($notice->fetch()) {
+            $notice = new ArrayWrapper($notice);
+        }
+
+        while ($notice->fetch()) {
+            try {
                 $twitter_status = $this->twitterStatusArray($notice);
                 $this->showTwitterXmlStatus($twitter_status);
+            } catch (Exception $e) {
+                common_log(LOG_ERR, $e->getMessage());
+                continue;
             }
         }
 
@@ -757,14 +801,16 @@ class ApiAction extends Action
         $this->element('ttl', null, '40');
 
         if (is_array($notice)) {
-            foreach ($notice as $n) {
-                $entry = $this->twitterRssEntryArray($n);
-                $this->showTwitterRssItem($entry);
-            }
-        } else {
-            while ($notice->fetch()) {
+            $notice = new ArrayWrapper($notice);
+        }
+
+        while ($notice->fetch()) {
+            try {
                 $entry = $this->twitterRssEntryArray($notice);
                 $this->showTwitterRssItem($entry);
+            } catch (Exception $e) {
+                common_log(LOG_ERR, $e->getMessage());
+                // continue on exceptions
             }
         }
 
@@ -800,17 +846,19 @@ class ApiAction extends Action
         $this->element('subtitle', null, $subtitle);
 
         if (is_array($notice)) {
-            foreach ($notice as $n) {
-                $this->raw($n->asAtomEntry());
-            }
-        } else {
-            while ($notice->fetch()) {
+            $notice = new ArrayWrapper($notice);
+        }
+
+        while ($notice->fetch()) {
+            try {
                 $this->raw($notice->asAtomEntry());
+            } catch (Exception $e) {
+                common_log(LOG_ERR, $e->getMessage());
+                continue;
             }
         }
 
         $this->endDocument('atom');
-
     }
 
     function showRssGroups($group, $title, $link, $subtitle)
@@ -866,9 +914,13 @@ class ApiAction extends Action
         $this->elementEnd('entry');
     }
 
-    function showXmlDirectMessage($dm)
+    function showXmlDirectMessage($dm, $namespaces=false)
     {
-        $this->elementStart('direct_message');
+        $attrs = array();
+        if ($namespaces) {
+            $attrs['xmlns:statusnet'] = 'http://status.net/schema/api/1/';
+        }
+        $this->elementStart('direct_message', $attrs);
         foreach($dm as $element => $value) {
             switch ($element) {
             case 'sender':
@@ -945,7 +997,7 @@ class ApiAction extends Action
     {
         $this->initDocument('xml');
         $dmsg = $this->directMessageArray($message);
-        $this->showXmlDirectMessage($dmsg);
+        $this->showXmlDirectMessage($dmsg, true);
         $this->endDocument('xml');
     }
 
@@ -959,7 +1011,6 @@ class ApiAction extends Action
 
     function showAtomGroups($group, $title, $id, $link, $subtitle=null, $selfuri=null)
     {
-
         $this->initDocument('atom');
 
         $this->element('title', null, common_xml_safe_str($title));
@@ -990,20 +1041,21 @@ class ApiAction extends Action
 
     function showJsonTimeline($notice)
     {
-
         $this->initDocument('json');
 
         $statuses = array();
 
         if (is_array($notice)) {
-            foreach ($notice as $n) {
-                $twitter_status = $this->twitterStatusArray($n);
-                array_push($statuses, $twitter_status);
-            }
-        } else {
-            while ($notice->fetch()) {
+            $notice = new ArrayWrapper($notice);
+        }
+
+        while ($notice->fetch()) {
+            try {
                 $twitter_status = $this->twitterStatusArray($notice);
                 array_push($statuses, $twitter_status);
+            } catch (Exception $e) {
+                common_log(LOG_ERR, $e->getMessage());
+                continue;
             }
         }
 
@@ -1014,7 +1066,6 @@ class ApiAction extends Action
 
     function showJsonGroups($group)
     {
-
         $this->initDocument('json');
 
         $groups = array();
@@ -1060,9 +1111,9 @@ class ApiAction extends Action
 
     function showTwitterXmlUsers($user)
     {
-
         $this->initDocument('xml');
-        $this->elementStart('users', array('type' => 'array'));
+        $this->elementStart('users', array('type' => 'array',
+                                           'xmlns:statusnet' => 'http://status.net/schema/api/1/'));
 
         if (is_array($user)) {
             foreach ($user as $u) {
@@ -1082,7 +1133,6 @@ class ApiAction extends Action
 
     function showJsonUsers($user)
     {
-
         $this->initDocument('json');
 
         $users = array();
@@ -1139,9 +1189,8 @@ class ApiAction extends Action
             header('Content-Type: application/json; charset=utf-8');
 
             // Check for JSONP callback
-            $callback = $this->arg('callback');
-            if ($callback) {
-                print $callback . '(';
+            if (isset($this->callback)) {
+                print $this->callback . '(';
             }
             break;
         case 'rss':
@@ -1168,10 +1217,8 @@ class ApiAction extends Action
             $this->endXML();
             break;
         case 'json':
-
             // Check for JSONP callback
-            $callback = $this->arg('callback');
-            if ($callback) {
+            if (isset($this->callback)) {
                 print ')';
             }
             break;
@@ -1201,7 +1248,10 @@ class ApiAction extends Action
 
         $status_string = ClientErrorAction::$status[$code];
 
-        header('HTTP/1.1 '.$code.' '.$status_string);
+        // Do not emit error header for JSONP
+        if (!isset($this->callback)) {
+            header('HTTP/1.1 '.$code.' '.$status_string);
+        }
 
         if ($format == 'xml') {
             $this->initDocument('xml');
@@ -1234,7 +1284,10 @@ class ApiAction extends Action
 
         $status_string = ServerErrorAction::$status[$code];
 
-        header('HTTP/1.1 '.$code.' '.$status_string);
+        // Do not emit error header for JSONP
+        if (!isset($this->callback)) {
+            header('HTTP/1.1 '.$code.' '.$status_string);
+        }
 
         if ($content_type == 'xml') {
             $this->initDocument('xml');
@@ -1338,6 +1391,34 @@ class ApiAction extends Action
         }
     }
 
+    function getTargetProfile($id)
+    {
+        if (empty($id)) {
+
+            // Twitter supports these other ways of passing the user ID
+            if (is_numeric($this->arg('id'))) {
+                return Profile::staticGet($this->arg('id'));
+            } else if ($this->arg('id')) {
+                $nickname = common_canonical_nickname($this->arg('id'));
+                return Profile::staticGet('nickname', $nickname);
+            } else if ($this->arg('user_id')) {
+                // This is to ensure that a non-numeric user_id still
+                // overrides screen_name even if it doesn't get used
+                if (is_numeric($this->arg('user_id'))) {
+                    return Profile::staticGet('id', $this->arg('user_id'));
+                }
+            } else if ($this->arg('screen_name')) {
+                $nickname = common_canonical_nickname($this->arg('screen_name'));
+                return Profile::staticGet('nickname', $nickname);
+            }
+        } else if (is_numeric($id)) {
+            return Profile::staticGet($id);
+        } else {
+            $nickname = common_canonical_nickname($id);
+            return Profile::staticGet('nickname', $nickname);
+        }
+    }
+
     function getTargetGroup($id)
     {
         if (empty($id)) {
@@ -1392,7 +1473,6 @@ class ApiAction extends Action
      */
     function arg($key, $def=null)
     {
-
         // XXX: Do even more input validation/scrubbing?
 
         if (array_key_exists($key, $this->args)) {
@@ -1459,5 +1539,4 @@ class ApiAction extends Action
 
         return $uri;
     }
-
 }

@@ -58,7 +58,7 @@ require_once INSTALLDIR . '/lib/apiauth.php';
 
 class ApiStatusesDestroyAction extends ApiAuthAction
 {
-    var $status                = null;
+    var $status = null;
 
     /**
      * Take arguments for running
@@ -100,39 +100,43 @@ class ApiStatusesDestroyAction extends ApiAuthAction
         parent::handle($args);
 
         if (!in_array($this->format, array('xml', 'json'))) {
-             $this->clientError(_('API method not found.'), $code = 404);
-             return;
+            $this->clientError(
+                _('API method not found.'),
+                404
+            );
+            return;
         }
 
-         if (!in_array($_SERVER['REQUEST_METHOD'], array('POST', 'DELETE'))) {
-             $this->clientError(_('This method requires a POST or DELETE.'),
-                 400, $this->format);
-             return;
-         }
+        if (!in_array($_SERVER['REQUEST_METHOD'], array('POST', 'DELETE'))) {
+            $this->clientError(
+                _('This method requires a POST or DELETE.'),
+                400,
+                $this->format
+            );
+            return;
+        }
 
-         if (empty($this->notice)) {
-             $this->clientError(_('No status found with that ID.'),
-                 404, $this->format);
-             return;
-         }
+        if (empty($this->notice)) {
+            $this->clientError(
+                _('No status found with that ID.'),
+                404, $this->format
+            );
+            return;
+        }
 
-         if ($this->user->id == $this->notice->profile_id) {
-             $replies = new Reply;
-             $replies->get('notice_id', $this->notice_id);
-             $replies->delete();
-             $this->notice->delete();
-
-             if ($this->format == 'xml') {
-                 $this->showSingleXmlStatus($this->notice);
-             } elseif ($this->format == 'json') {
-                 $this->show_single_json_status($this->notice);
-             }
-         } else {
-             $this->clientError(_('You may not delete another user\'s status.'),
-                 403, $this->format);
-         }
-
-        $this->showNotice();
+        if ($this->user->id == $this->notice->profile_id) {
+            if (Event::handle('StartDeleteOwnNotice', array($this->user, $this->notice))) {
+                $this->notice->delete();
+                Event::handle('EndDeleteOwnNotice', array($this->user, $this->notice));
+            }
+	        $this->showNotice();
+        } else {
+            $this->clientError(
+                _('You may not delete another user\'s status.'),
+                403,
+                $this->format
+            );
+        }
     }
 
     /**

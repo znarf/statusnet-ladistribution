@@ -95,6 +95,7 @@ class MediaFile
 
         if (!$file_id) {
             common_log_db_error($file, "INSERT", __FILE__);
+            // TRANS: Client exception thrown when a database error was thrown during a file upload operation.
             throw new ClientException(_('There was a database error while saving your file. Please try again.'));
         }
 
@@ -120,6 +121,7 @@ class MediaFile
 
             if (!$result) {
                 common_log_db_error($file_redir, "INSERT", __FILE__);
+                // TRANS: Client exception thrown when a database error was thrown during a file upload operation.
                 throw new ClientException(_('There was a database error while saving your file. Please try again.'));
             }
         }
@@ -139,16 +141,19 @@ class MediaFile
         case UPLOAD_ERR_OK: // success, jump out
             break;
         case UPLOAD_ERR_INI_SIZE:
+            // TRANS: Client exception thrown when an uploaded file is larger than set in php.ini.
             throw new ClientException(_('The uploaded file exceeds the ' .
                 'upload_max_filesize directive in php.ini.'));
             return;
         case UPLOAD_ERR_FORM_SIZE:
             throw new ClientException(
+                // TRANS: Client exception.
                 _('The uploaded file exceeds the MAX_FILE_SIZE directive' .
                 ' that was specified in the HTML form.'));
             return;
         case UPLOAD_ERR_PARTIAL:
             @unlink($_FILES[$param]['tmp_name']);
+            // TRANS: Client exception.
             throw new ClientException(_('The uploaded file was only' .
                 ' partially uploaded.'));
             return;
@@ -156,17 +161,21 @@ class MediaFile
             // No file; probably just a non-AJAX submission.
             return;
         case UPLOAD_ERR_NO_TMP_DIR:
+            // TRANS: Client exception thrown when a temporary folder is not present to store a file upload.
             throw new ClientException(_('Missing a temporary folder.'));
             return;
         case UPLOAD_ERR_CANT_WRITE:
+            // TRANS: Client exception thrown when writing to disk is not possible during a file upload operation.
             throw new ClientException(_('Failed to write file to disk.'));
             return;
         case UPLOAD_ERR_EXTENSION:
+            // TRANS: Client exception thrown when a file upload operation has been stopped by an extension.
             throw new ClientException(_('File upload stopped by extension.'));
             return;
         default:
             common_log(LOG_ERR, __METHOD__ . ": Unknown upload error " .
                 $_FILES[$param]['error']);
+            // TRANS: Client exception thrown when a file upload operation has failed with an unknown reason.
             throw new ClientException(_('System error uploading file.'));
             return;
         }
@@ -176,11 +185,13 @@ class MediaFile
             // Should never actually get here
 
             @unlink($_FILES[$param]['tmp_name']);
+            // TRANS: Client exception thrown when a file upload operation would cause a user to exceed a set quota.
             throw new ClientException(_('File exceeds user\'s quota.'));
             return;
         }
 
-        $mimetype = MediaFile::getUploadedFileType($_FILES[$param]['tmp_name']);
+        $mimetype = MediaFile::getUploadedFileType($_FILES[$param]['tmp_name'],
+                                                   $_FILES[$param]['name']);
 
         $filename = null;
 
@@ -193,11 +204,15 @@ class MediaFile
             $result = move_uploaded_file($_FILES[$param]['tmp_name'], $filepath);
 
             if (!$result) {
+                // TRANS: Client exception thrown when a file upload operation fails because the file could
+                // TRANS: not be moved from the temporary folder to the permanent file location.
                 throw new ClientException(_('File could not be moved to destination directory.'));
                 return;
             }
 
         } else {
+            // TRANS: Client exception thrown when a file upload operation has been stopped because the MIME
+            // TRANS: type of the uploaded file could not be determined.
             throw new ClientException(_('Could not determine file\'s MIME type.'));
             return;
         }
@@ -213,6 +228,7 @@ class MediaFile
 
             // Should never actually get here
 
+            // TRANS: Client exception thrown when a file upload operation would cause a user to exceed a set quota.
             throw new ClientException(_('File exceeds user\'s quota.'));
             return;
         }
@@ -230,10 +246,14 @@ class MediaFile
             $result = copy($stream['uri'], $filepath) && chmod($filepath, 0664);
 
             if (!$result) {
+                // TRANS: Client exception thrown when a file upload operation fails because the file could
+                // TRANS: not be moved from the temporary folder to the permanent file location.
                 throw new ClientException(_('File could not be moved to destination directory.' .
                     $stream['uri'] . ' ' . $filepath));
             }
         } else {
+            // TRANS: Client exception thrown when a file upload operation has been stopped because the MIME
+            // TRANS: type of the uploaded file could not be determined.
             throw new ClientException(_('Could not determine file\'s MIME type.'));
             return;
         }
@@ -241,19 +261,41 @@ class MediaFile
         return new MediaFile($user, $filename, $mimetype);
     }
 
-    static function getUploadedFileType($f) {
+    /**
+     * Attempt to identify the content type of a given file.
+     * 
+     * @param mixed $f file handle resource, or filesystem path as string
+     * @param string $originalFilename (optional) for extension-based detection
+     * @return string
+     * 
+     * @fixme is this an internal or public method? It's called from GetFileAction
+     * @fixme this seems to tie a front-end error message in, kinda confusing
+     * @fixme this looks like it could return a PEAR_Error in some cases, if
+     *        type can't be identified and $config['attachments']['supported'] is true
+     * 
+     * @throws ClientException if type is known, but not supported for local uploads
+     */
+    static function getUploadedFileType($f, $originalFilename=false) {
         require_once 'MIME/Type.php';
+        require_once 'MIME/Type/Extension.php';
+        $mte = new MIME_Type_Extension();
 
         $cmd = &PEAR::getStaticProperty('MIME_Type', 'fileCmd');
         $cmd = common_config('attachments', 'filecommand');
 
         $filetype = null;
 
+        // If we couldn't get a clear type from the file extension,
+        // we'll go ahead and try checking the content. Content checks
+        // are unambiguous for most image files, but nearly useless
+        // for office document formats.
+
         if (is_string($f)) {
 
             // assuming a filename
 
             $filetype = MIME_Type::autoDetect($f);
+
         } else {
 
             // assuming a filehandle
@@ -262,17 +304,47 @@ class MediaFile
             $filetype = MIME_Type::autoDetect($stream['uri']);
         }
 
-        if (common_config('attachments', 'supported') === true || in_array($filetype, common_config('attachments', 'supported'))) {
+        // The content-based sources for MIME_Type::autoDetect()
+        // are wildly unreliable for office-type documents. If we've
+        // gotten an unclear reponse back or just couldn't identify it,
+        // we'll try detecting a type from its extension...
+        $unclearTypes = array('application/octet-stream',
+                              'application/vnd.ms-office',
+                              'application/zip');
+
+        if ($originalFilename && (!$filetype || in_array($filetype, $unclearTypes))) {
+            $type = $mte->getMIMEType($originalFilename);
+            if (is_string($type)) {
+                $filetype = $type;
+            }
+        }
+
+        $supported = common_config('attachments', 'supported');
+        if (is_array($supported)) {
+            // Normalize extensions to mime types
+            foreach ($supported as $i => $entry) {
+                if (strpos($entry, '/') === false) {
+                    common_log(LOG_INFO, "sample.$entry");
+                    $supported[$i] = $mte->getMIMEType("sample.$entry");
+                }
+            }
+        }
+        if ($supported === true || in_array($filetype, $supported)) {
             return $filetype;
         }
         $media = MIME_Type::getMedia($filetype);
         if ('application' !== $media) {
-            $hint = sprintf(_(' Try using another %s format.'), $media);
+            // TRANS: Client exception thrown trying to upload a forbidden MIME type.
+            // TRANS: %1$s is the file type that was denied, %2$s is the application part of
+            // TRANS: the MIME type that was denied.
+            $hint = sprintf(_('"%1$s" is not a supported file type on this server. ' .
+            'Try using another %2$s format.'), $filetype, $media);
         } else {
-            $hint = '';
+            // TRANS: Client exception thrown trying to upload a forbidden MIME type.
+            // TRANS: %s is the file type that was denied.
+            $hint = sprintf(_('"%s" is not a supported file type on this server.'), $filetype);
         }
-        throw new ClientException(sprintf(
-            _('%s is not a supported file type on this server.'), $filetype) . $hint);
+        throw new ClientException($hint);
     }
 
     static function respectsQuota($user, $filesize)

@@ -24,7 +24,7 @@
  * @author    Dan Moore <dan@moore.cx>
  * @author    Evan Prodromou <evan@status.net>
  * @author    Zach Copley <zach@status.net>
- * @copyright 2009 StatusNet, Inc.
+ * @copyright 2009-2010 StatusNet, Inc.
  * @license   http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
  * @link      http://status.net/
  */
@@ -67,7 +67,7 @@ class ApiFriendshipsCreateAction extends ApiAuthAction
         parent::prepare($args);
 
         $this->user   = $this->auth_user;
-        $this->other  = $this->getTargetUser($id);
+        $this->other  = $this->getTargetProfile($this->arg('id'));
 
         return true;
     }
@@ -88,6 +88,7 @@ class ApiFriendshipsCreateAction extends ApiAuthAction
 
         if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             $this->clientError(
+                // TRANS: Client error. POST is a HTTP command. It should not be translated.
                 _('This method requires a POST.'),
                 400,
                 $this->format
@@ -106,7 +107,7 @@ class ApiFriendshipsCreateAction extends ApiAuthAction
 
         if (empty($this->other)) {
             $this->clientError(
-                _('Could not follow user: User not found.'),
+                _('Could not follow user: profile not found.'),
                 403,
                 $this->format
             );

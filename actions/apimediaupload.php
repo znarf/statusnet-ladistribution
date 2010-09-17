@@ -64,6 +64,7 @@ class ApiMediaUploadAction extends ApiAuthAction
 
         if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             $this->clientError(
+                // TRANS: Client error. POST is a HTTP command. It should not be translated.
                 _('This method requires a POST.'),
                 400, $this->format
             );
@@ -88,15 +89,15 @@ class ApiMediaUploadAction extends ApiAuthAction
 
         try {
             $upload = MediaFile::fromUpload('media', $this->auth_user);
-        } catch (ClientException $ce) {
-            $this->clientError($ce->getMessage());
+        } catch (Exception $e) {
+            $this->clientError($e->getMessage(), $e->getCode());
             return;
         }
 
         if (isset($upload)) {
             $this->showResponse($upload);
         } else {
-            $this->clientError('Upload failed.');
+            $this->clientError(_('Upload failed.'));
             return;
         }
     }

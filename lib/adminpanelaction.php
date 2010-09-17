@@ -44,7 +44,6 @@ if (!defined('STATUSNET')) {
  *
  * @todo Find some commonalities with SettingsAction and combine
  */
-
 class AdminPanelAction extends Action
 {
     var $success = true;
@@ -61,7 +60,6 @@ class AdminPanelAction extends Action
      *
      * @return boolean success flag
      */
-
     function prepare($args)
     {
         parent::prepare($args);
@@ -124,7 +122,6 @@ class AdminPanelAction extends Action
      *
      * @return void
      */
-
     function handle($args)
     {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -155,7 +152,6 @@ class AdminPanelAction extends Action
      * @return void
      * @see AdminPanelNav
      */
-
     function showLocalNav()
     {
         $nav = new AdminPanelNav($this);
@@ -169,7 +165,6 @@ class AdminPanelAction extends Action
      *
      * @return void.
      */
-
     function showContent()
     {
         $this->showForm();
@@ -199,7 +194,6 @@ class AdminPanelAction extends Action
      *
      * @return void
      */
-
     function showPageNotice()
     {
         if ($this->msg) {
@@ -222,7 +216,6 @@ class AdminPanelAction extends Action
      *
      * @return void
      */
-
     function showForm()
     {
         // TRANS: Client error message.
@@ -239,7 +232,6 @@ class AdminPanelAction extends Action
      *
      * @return void
      */
-
     function getInstructions()
     {
         return '';
@@ -252,7 +244,6 @@ class AdminPanelAction extends Action
      *
      * @return void
      */
-
     function saveSettings()
     {
         // TRANS: Client error message
@@ -267,7 +258,6 @@ class AdminPanelAction extends Action
      *
      * @return mixed $result false if something didn't work
      */
-
     function deleteSetting($section, $setting)
     {
         $config = new Config();
@@ -284,9 +274,10 @@ class AdminPanelAction extends Action
                 $this->clientError(_("Unable to delete design setting."));
                 return null;
             }
+            return $result;
         }
 
-        return $result;
+        return null;
     }
 
     function canAdmin($name)
@@ -313,7 +304,6 @@ class AdminPanelAction extends Action
  *
  * @see      Widget
  */
-
 class AdminPanelNav extends Widget
 {
     var $action = null;
@@ -323,7 +313,6 @@ class AdminPanelNav extends Widget
      *
      * @param Action $action current action, used for output
      */
-
     function __construct($action=null)
     {
         parent::__construct($action);
@@ -335,7 +324,6 @@ class AdminPanelNav extends Widget
      *
      * @return void
      */
-
     function show()
     {
         $action_name = $this->action->trimmed('action');
@@ -412,5 +400,4 @@ class AdminPanelNav extends Widget
         }
         $this->action->elementEnd('ul');
     }
-
 }

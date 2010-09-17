@@ -21,6 +21,7 @@
  *
  * @category  API
  * @package   StatusNet
+ * @author    Siebrand Mazeland <s.mazeland@xs4all.nl>
  * @author    Zach Copley <zach@status.net>
  * @copyright 2009 StatusNet, Inc.
  * @license   http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
@@ -82,6 +83,7 @@ class ApiAccountUpdateDeliveryDeviceAction extends ApiAuthAction
 
         if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             $this->clientError(
+                // TRANS: Client error message. POST is a HTTP command. It should not be translated.
                 _('This method requires a POST.'),
                 400, $this->format
             );

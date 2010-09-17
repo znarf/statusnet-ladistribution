@@ -82,13 +82,16 @@ abstract class Installer
     {
         $pass = true;
 
-        if (file_exists(INSTALLDIR.'/config.php')) {
-            $this->warning('Config file "config.php" already exists.');
-            $pass = false;
+        $config = INSTALLDIR.'/config.php';
+        if (file_exists($config)) {
+            if (!is_writable($config) || filesize($config) > 0) {
+                $this->warning('Config file "config.php" already exists.');
+                $pass = false;
+            }
         }
 
         if (version_compare(PHP_VERSION, '5.2.3', '<')) {
-            $errors[] = 'Require PHP version 5.2.3 or greater.';
+            $this->warning('Require PHP version 5.2.3 or greater.');
             $pass = false;
         }
 
@@ -316,7 +319,7 @@ abstract class Installer
             $this->updateStatus(sprintf("Adding %s data to database...", $name));
             $res = $this->runDbScript($scr.'.sql', $conn, 'pgsql');
             if ($res === false) {
-                $this->updateStatus(sprintf("Can't run %d script.", $name), true);
+                $this->updateStatus(sprintf("Can't run %s script.", $name), true);
                 return false;
             }
         }
@@ -444,7 +447,7 @@ abstract class Installer
             case 'mysqli':
                 $res = $conn->query($stmt);
                 if ($res === false) {
-                    $error = $conn->error();
+                    $error = $conn->error;
                 }
                 break;
             case 'pgsql':
