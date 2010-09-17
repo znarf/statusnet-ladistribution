@@ -142,7 +142,8 @@ class File extends Memcached_DataObject
                     $redir_url = $redir_data;
                     $redir_data = array();
                 } else {
-                    throw new ServerException("Can't process url '$given_url'");
+                    // TRANS: Server exception thrown when a URL cannot be processed.
+                    throw new ServerException(sprintf(_("Cannot process URL '%s'"), $given_url));
                 }
                 // TODO: max field length
                 if ($redir_url === $given_url || strlen($redir_url) > 255 || !$followRedirects) {
@@ -172,7 +173,9 @@ class File extends Memcached_DataObject
         if (empty($x)) {
             $x = File::staticGet($file_id);
             if (empty($x)) {
-                throw new ServerException("Robin thinks something is impossible.");
+                // FIXME: This could possibly be a clearer message :)
+                // TRANS: Server exception thrown when... Robin thinks something is impossible!
+                throw new ServerException(_("Robin thinks something is impossible."));
             }
         }
 
@@ -185,8 +188,10 @@ class File extends Memcached_DataObject
     function isRespectsQuota($user,$fileSize) {
 
         if ($fileSize > common_config('attachments', 'file_quota')) {
-            return sprintf(_('No file may be larger than %d bytes ' .
-                             'and the file you sent was %d bytes. Try to upload a smaller version.'),
+            // TRANS: Message given if an upload is larger than the configured maximum.
+            // TRANS: %1$d is the byte limit for uploads, %2$d is the byte count for the uploaded file.
+            return sprintf(_('No file may be larger than %1$d bytes ' .
+                             'and the file you sent was %2$d bytes. Try to upload a smaller version.'),
                            common_config('attachments', 'file_quota'), $fileSize);
         }
 
@@ -199,6 +204,8 @@ class File extends Memcached_DataObject
         $this->fetch();
         $total = $this->total + $fileSize;
         if ($total > common_config('attachments', 'user_quota')) {
+            // TRANS: Message given if an upload would exceed user quota.
+            // TRANS: %d (number) is the user quota in bytes.
             return sprintf(_('A file this large would exceed your user quota of %d bytes.'), common_config('attachments', 'user_quota'));
         }
         $query .= ' AND EXTRACT(month FROM file.modified) = EXTRACT(month FROM now()) and EXTRACT(year FROM file.modified) = EXTRACT(year FROM now())';
@@ -207,6 +214,8 @@ class File extends Memcached_DataObject
         $this->fetch();
         $total = $this->total + $fileSize;
         if ($total > common_config('attachments', 'monthly_quota')) {
+            // TRANS: Message given id an upload would exceed a user's monthly quota.
+            // TRANS: $d (number) is the monthly user quota in bytes.
             return sprintf(_('A file this large would exceed your monthly quota of %d bytes.'), common_config('attachments', 'monthly_quota'));
         }
         return true;
@@ -243,7 +252,8 @@ class File extends Memcached_DataObject
     static function path($filename)
     {
         if (!self::validFilename($filename)) {
-            throw new ClientException("Invalid filename");
+            // TRANS: Client exception thrown if a file upload does not have a valid name.
+            throw new ClientException(_("Invalid filename."));
         }
         $dir = common_config('attachments', 'dir');
 
@@ -257,7 +267,8 @@ class File extends Memcached_DataObject
     static function url($filename)
     {
         if (!self::validFilename($filename)) {
-            throw new ClientException("Invalid filename");
+            // TRANS: Client exception thrown if a file upload does not have a valid name.
+            throw new ClientException(_("Invalid filename."));
         }
         if(common_config('site','private')) {
 
@@ -350,4 +361,3 @@ class File extends Memcached_DataObject
         return !empty($enclosure);
     }
 }
-

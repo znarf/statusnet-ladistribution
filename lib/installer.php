@@ -91,7 +91,7 @@ abstract class Installer
         }
 
         if (version_compare(PHP_VERSION, '5.2.3', '<')) {
-            $errors[] = 'Require PHP version 5.2.3 or greater.';
+            $this->warning('Require PHP version 5.2.3 or greater.');
             $pass = false;
         }
 
@@ -319,7 +319,7 @@ abstract class Installer
             $this->updateStatus(sprintf("Adding %s data to database...", $name));
             $res = $this->runDbScript($scr.'.sql', $conn, 'pgsql');
             if ($res === false) {
-                $this->updateStatus(sprintf("Can't run %d script.", $name), true);
+                $this->updateStatus(sprintf("Can't run %s script.", $name), true);
                 return false;
             }
         }

@@ -195,8 +195,10 @@ class ApiStatusesUpdateAction extends ApiAuthAction
 
         if ($_SERVER['REQUEST_METHOD'] != 'POST') {
             $this->clientError(
+                // TRANS: Client error. POST is a HTTP command. It should not be translated.
                 _('This method requires a POST.'),
-                400, $this->format
+                400,
+                $this->format
             );
             return;
         }
@@ -217,7 +219,7 @@ class ApiStatusesUpdateAction extends ApiAuthAction
 
         if (empty($this->status)) {
             $this->clientError(
-                'Client must provide a \'status\' parameter with a value.',
+                _('Client must provide a \'status\' parameter with a value.'),
                 400,
                 $this->format
             );
@@ -291,8 +293,8 @@ class ApiStatusesUpdateAction extends ApiAuthAction
 
             try {
                 $upload = MediaFile::fromUpload('media', $this->auth_user);
-            } catch (ClientException $ce) {
-                $this->clientError($ce->getMessage());
+            } catch (Exception $e) {
+                $this->clientError($e->getMessage(), $e->getCode(), $this->format);
                 return;
             }
 
@@ -305,7 +307,11 @@ class ApiStatusesUpdateAction extends ApiAuthAction
                         'Max notice size is %d chars, ' .
                         'including attachment URL.'
                     );
-                    $this->clientError(sprintf($msg, Notice::maxContent()));
+                    $this->clientError(
+                        sprintf($msg, Notice::maxContent()),
+                        400,
+                        $this->format
+                    );
                 }
             }
 
@@ -332,7 +338,7 @@ class ApiStatusesUpdateAction extends ApiAuthAction
                     $options
                 );
             } catch (Exception $e) {
-                $this->clientError($e->getMessage());
+                $this->clientError($e->getMessage(), $e->getCode(), $this->format);
                 return;
             }
 
