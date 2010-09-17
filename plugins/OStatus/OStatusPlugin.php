@@ -896,11 +896,16 @@ class OStatusPlugin extends Plugin
         // @fixme we could run updates through the PuSH feed too,
         // in which case we can skip Salmon pings to folks who
         // are also subscribed to me.
-        $sql = "SELECT * FROM ostatus_profile " .
+
+        $ostatus_profile_table = common_database_tablename('ostatus_profile');
+        $subscription_table = common_database_tablename('subscription');
+        $group_member_table = common_database_tablename('group_member');
+
+        $sql = "SELECT * FROM $ostatus_profile_table " .
                "WHERE profile_id IN " .
-               "(SELECT subscribed FROM subscription WHERE subscriber=%d) " .
+               "(SELECT subscribed FROM $subscription_table WHERE subscriber=%d) " .
                "OR group_id IN " .
-               "(SELECT group_id FROM group_member WHERE profile_id=%d)";
+               "(SELECT group_id FROM $group_member_table WHERE profile_id=%d)";
         $oprofile = new Ostatus_profile();
         $oprofile->query(sprintf($sql, $profile->id, $profile->id));
 
