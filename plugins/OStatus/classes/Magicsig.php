@@ -46,6 +46,9 @@ class Magicsig extends Memcached_DataObject
     public function __construct($alg = 'RSA-SHA256')
     {
         $this->alg = $alg;
+        $prefix = common_config('db','table_prefix');
+        $this->tablename = $this->__table;
+        $this->__table = $prefix . $this->tablename;
     }
 
     public /*static*/ function staticGet($k, $v=null)

@@ -290,7 +290,7 @@ class Safe_DataObject extends DB_DataObject
                         }
                     }
 
-                    if (!empty($_DB_DATAOBJECT['CONFIG']['debug'])) { 
+                    if (!empty($_DB_DATAOBJECT['CONFIG']['debug'])) {
                         if (!is_readable ($ini)) {
                             $this->debug("ini file is not readable: $ini","databaseStructure",1);
                         } else {
