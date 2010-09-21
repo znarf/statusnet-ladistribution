@@ -60,8 +60,10 @@ class MySQLSearch extends SearchEngine
             return true;
         } else if ('notice' === $this->table) {
 
+            $notice_table = common_database_tablename('notice');
+
             // Don't show imported notices
-            $this->target->whereAdd('notice.is_local != ' . Notice::GATEWAY);
+            $this->target->whereAdd("$notice_table.is_local != " . Notice::GATEWAY);
 
             if (strtolower($q) != $q) {
                 $this->target->whereAdd("( MATCH(content) AGAINST ('" . addslashes($q) .
