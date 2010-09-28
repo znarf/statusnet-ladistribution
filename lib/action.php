@@ -317,7 +317,6 @@ class Action extends HTMLOutputter // lawsuit
      *
      * @return nothing
      */
-
     function showFeeds()
     {
         $feeds = $this->getFeeds();
@@ -713,7 +712,6 @@ class Action extends HTMLOutputter // lawsuit
      *
      * @return nothing
      */
-
     function showAside()
     {
         $this->elementStart('div', array('id' => 'aside_primary',
@@ -734,7 +732,6 @@ class Action extends HTMLOutputter // lawsuit
      *
      * @return void
      */
-
     function showExportData()
     {
         $feeds = $this->getFeeds();
@@ -810,6 +807,7 @@ class Action extends HTMLOutputter // lawsuit
                             // TRANS: Secondary navigation menu option leading to contact information on the StatusNet site.
                             _('Contact'));
             $this->menuItem(common_local_url('doc', array('title' => 'badge')),
+                            // TRANS: Secondary navigation menu option.
                             _('Badge'));
             Event::handle('EndSecondaryNav', array($this));
         }
@@ -957,7 +955,6 @@ class Action extends HTMLOutputter // lawsuit
      *
      * @return boolean is read only action?
      */
-
     function isReadOnly($args)
     {
         return false;
@@ -1056,7 +1053,6 @@ class Action extends HTMLOutputter // lawsuit
      *
      * @return boolean is read only action?
      */
-
     function isCacheable()
     {
         return true;
@@ -1070,7 +1066,6 @@ class Action extends HTMLOutputter // lawsuit
      *
      * @return boolean
      */
-
     function _hasEtag($etag, $if_none_match)
     {
         $etags = explode(',', $if_none_match);
@@ -1110,7 +1105,6 @@ class Action extends HTMLOutputter // lawsuit
      *
      * @return integer integer value
      */
-
     function int($key, $defValue=null, $maxValue=null, $minValue=null)
     {
         $arg = strtolower($this->trimmed($key));
@@ -1138,7 +1132,6 @@ class Action extends HTMLOutputter // lawsuit
      *
      * @return nothing
      */
-
     function serverError($msg, $code=500)
     {
         $action = $this->trimmed('action');
@@ -1154,7 +1147,6 @@ class Action extends HTMLOutputter // lawsuit
      *
      * @return nothing
      */
-
     function clientError($msg, $code=400)
     {
         $action = $this->trimmed('action');
@@ -1167,7 +1159,6 @@ class Action extends HTMLOutputter // lawsuit
      *
      * @return string current URL
      */
-
     function selfUrl()
     {
         list($action, $args) = $this->returnToArgs();
@@ -1179,7 +1170,6 @@ class Action extends HTMLOutputter // lawsuit
      *
      * @return array two elements: action, other args
      */
-
     function returnToArgs()
     {
         $action = $this->trimmed('action');
@@ -1286,7 +1276,6 @@ class Action extends HTMLOutputter // lawsuit
      *
      * @return array Feed object to show in head and links
      */
-
     function getFeeds()
     {
         return null;
@@ -1297,7 +1286,6 @@ class Action extends HTMLOutputter // lawsuit
      *
      * @return Design a design object to use
      */
-
     function getDesign()
     {
         return Design::siteDesign();
@@ -1311,7 +1299,6 @@ class Action extends HTMLOutputter // lawsuit
      *
      * @return void
      */
-
     // XXX: Finding this type of check with the same message about 50 times.
     //      Possible to refactor?
     function checkSessionToken()
