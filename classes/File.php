@@ -172,9 +172,9 @@ class File extends Memcached_DataObject
         if (empty($x)) {
             $x = File::staticGet($file_id);
             if (empty($x)) {
-                // FIXME: This could possibly be a clearer message :)
+                // @todo FIXME: This could possibly be a clearer message :)
                 // TRANS: Server exception thrown when... Robin thinks something is impossible!
-                throw new ServerException(_("Robin thinks something is impossible."));
+                throw new ServerException(_('Robin thinks something is impossible.'));
             }
         }
 
@@ -189,8 +189,10 @@ class File extends Memcached_DataObject
         if ($fileSize > common_config('attachments', 'file_quota')) {
             // TRANS: Message given if an upload is larger than the configured maximum.
             // TRANS: %1$d is the byte limit for uploads, %2$d is the byte count for the uploaded file.
-            return sprintf(_('No file may be larger than %1$d bytes ' .
-                             'and the file you sent was %2$d bytes. Try to upload a smaller version.'),
+            // TRANS: %1$s is used for plural.
+            return sprintf(_m('No file may be larger than %1$d byte and the file you sent was %2$d bytes. Try to upload a smaller version.',
+                              'No file may be larger than %1$d bytes and the file you sent was %2$d bytes. Try to upload a smaller version.',
+                              common_config('attachments', 'file_quota')),
                            common_config('attachments', 'file_quota'), $fileSize);
         }
 
@@ -204,8 +206,11 @@ class File extends Memcached_DataObject
         $total = $this->total + $fileSize;
         if ($total > common_config('attachments', 'user_quota')) {
             // TRANS: Message given if an upload would exceed user quota.
-            // TRANS: %d (number) is the user quota in bytes.
-            return sprintf(_('A file this large would exceed your user quota of %d bytes.'), common_config('attachments', 'user_quota'));
+            // TRANS: %d (number) is the user quota in bytes and is used for plural.
+            return sprintf(_m('A file this large would exceed your user quota of %d byte.',
+                              'A file this large would exceed your user quota of %d bytes.',
+                              common_config('attachments', 'user_quota')),
+                           common_config('attachments', 'user_quota'));
         }
         $query .= ' AND EXTRACT(month FROM file.modified) = EXTRACT(month FROM now()) and EXTRACT(year FROM file.modified) = EXTRACT(year FROM now())';
         $query = common_sql_prefix_query($query, array('file', 'file_to_post', 'notice'));
@@ -214,8 +219,11 @@ class File extends Memcached_DataObject
         $total = $this->total + $fileSize;
         if ($total > common_config('attachments', 'monthly_quota')) {
             // TRANS: Message given id an upload would exceed a user's monthly quota.
-            // TRANS: $d (number) is the monthly user quota in bytes.
-            return sprintf(_('A file this large would exceed your monthly quota of %d bytes.'), common_config('attachments', 'monthly_quota'));
+            // TRANS: $d (number) is the monthly user quota in bytes and is used for plural.
+            return sprintf(_m('A file this large would exceed your monthly quota of %d byte.',
+                              'A file this large would exceed your monthly quota of %d bytes.',
+                              common_config('attachments', 'monthly_quota')),
+                           common_config('attachments', 'monthly_quota'));
         }
         return true;
     }
@@ -225,12 +233,19 @@ class File extends Memcached_DataObject
     static function filename($profile, $basename, $mimetype)
     {
         require_once 'MIME/Type/Extension.php';
+
+        // We have to temporarily disable auto handling of PEAR errors...
+        PEAR::staticPushErrorHandling(PEAR_ERROR_RETURN);
+
         $mte = new MIME_Type_Extension();
-        try {
-            $ext = $mte->getExtension($mimetype);
-        } catch ( Exception $e) {
+        $ext = $mte->getExtension($mimetype);
+        if (PEAR::isError($ext)) {
             $ext = strtolower(preg_replace('/\W/', '', $mimetype));
         }
+
+        // Restore error handling.
+        PEAR::staticPopErrorHandling();
+
         $nickname = $profile->nickname;
         $datestamp = strftime('%Y%m%dT%H%M%S', time());
         $random = strtolower(common_confirmation_code(32));
@@ -269,22 +284,39 @@ class File extends Memcached_DataObject
             // TRANS: Client exception thrown if a file upload does not have a valid name.
             throw new ClientException(_("Invalid filename."));
         }
-        if(common_config('site','private')) {
+
+        if (common_config('site','private')) {
 
             return common_local_url('getfile',
                                 array('filename' => $filename));
 
+        }
+
+        if (StatusNet::isHTTPS()) {
+
+            $sslserver = common_config('attachments', 'sslserver');
+
+            if (empty($sslserver)) {
+                // XXX: this assumes that background dir == site dir + /file/
+                // not true if there's another server
+                if (is_string(common_config('site', 'sslserver')) &&
+                    mb_strlen(common_config('site', 'sslserver')) > 0) {
+                    $server = common_config('site', 'sslserver');
+                } else if (common_config('site', 'server')) {
+                    $server = common_config('site', 'server');
+                }
+                $path = common_config('site', 'path') . '/file/';
+            } else {
+                $server = $sslserver;
+                $path   = common_config('attachments', 'sslpath');
+                if (empty($path)) {
+                    $path = common_config('attachments', 'path');
+                }
+            }
+
+            $protocol = 'https';
         } else {
             $path = common_config('attachments', 'path');
-
-            if ($path[strlen($path)-1] != '/') {
-                $path .= '/';
-            }
-
-            if ($path[0] != '/') {
-                $path = '/'.$path;
-            }
-
             $server = common_config('attachments', 'server');
 
             if (empty($server)) {
@@ -293,19 +325,18 @@ class File extends Memcached_DataObject
 
             $ssl = common_config('attachments', 'ssl');
 
-            if (is_null($ssl)) { // null -> guess
-                if (common_config('site', 'ssl') == 'always' &&
-                    !common_config('attachments', 'server')) {
-                    $ssl = true;
-                } else {
-                    $ssl = false;
-                }
-            }
-
             $protocol = ($ssl) ? 'https' : 'http';
-
-            return $protocol.'://'.$server.$path.$filename;
         }
+
+        if ($path[strlen($path)-1] != '/') {
+            $path .= '/';
+        }
+
+        if ($path[0] != '/') {
+            $path = '/'.$path;
+        }
+
+        return $protocol.'://'.$server.$path.$filename;
     }
 
     function getEnclosure(){

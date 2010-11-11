@@ -524,10 +524,8 @@ class Notice extends Memcached_DataObject
         $notice = new Notice();
         $notice->profile_id = $profile_id;
         $notice->content = $content;
-        if (common_config('db','type') == 'pgsql')
-          $notice->whereAdd('extract(epoch from now() - created) < ' . common_config('site', 'dupelimit'));
-        else
-          $notice->whereAdd('now() - created < ' . common_config('site', 'dupelimit'));
+        $threshold = common_sql_date(time() - common_config('site', 'dupelimit'));
+        $notice->whereAdd(sprintf("created > '%s'", $notice->escape($threshold)));
 
         $cnt = $notice->count();
         return ($cnt == 0);
@@ -910,7 +908,7 @@ class Notice extends Memcached_DataObject
     {
         if (!is_array($group_ids)) {
             // TRANS: Server exception thrown when no array is provided to the method saveKnownGroups().
-            throw new ServerException(_("Bad type provided to saveKnownGroups"));
+            throw new ServerException(_('Bad type provided to saveKnownGroups.'));
         }
 
         $groups = array();
@@ -1123,7 +1121,7 @@ class Notice extends Memcached_DataObject
                     common_log_db_error($reply, 'INSERT', __FILE__);
                     // TRANS: Server exception thrown when a reply cannot be saved.
                     // TRANS: %1$d is a notice ID, %2$d is the ID of the mentioned user.
-                    throw new ServerException(sprintf(_("Could not save reply for %1$d, %2$d."), $this->id, $mentioned->id));
+                    throw new ServerException(sprintf(_('Could not save reply for %1$d, %2$d.'), $this->id, $mentioned->id));
                 } else {
                     $replied[$mentioned->id] = 1;
                     self::blow('reply:stream:%d', $mentioned->id);
@@ -2040,6 +2038,7 @@ class Notice extends Memcached_DataObject
     {
         // We always insert for the author so they don't
         // have to wait
+        Event::handle('StartNoticeDistribute', array($this));
 
         $user = User::staticGet('id', $this->profile_id);
         if (!empty($user)) {

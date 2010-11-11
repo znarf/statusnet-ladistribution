@@ -145,7 +145,6 @@ function common_switch_locale($language=null)
     textdomain("statusnet");
 }
 
-
 function common_timezone()
 {
     if (common_logged_in()) {
@@ -327,7 +326,8 @@ function common_set_cookie($key, $value, $expiration=0)
                      $value,
                      $expiration,
                      $cookiepath,
-                     $server);
+                     $server,
+                     common_config('site', 'ssl')=='always');
 }
 
 define('REMEMBERME', 'rememberme');
@@ -860,7 +860,8 @@ function common_linkify($url) {
             $longurl = $url;
         }
     }
-    $attrs = array('href' => $canon, 'title' => $longurl, 'rel' => 'external');
+
+    $attrs = array('href' => $canon, 'title' => $longurl);
 
     $is_attachment = false;
     $attachment_id = null;
@@ -896,6 +897,16 @@ function common_linkify($url) {
         $attrs['id'] = "attachment-{$attachment_id}";
     }
 
+    // Whether to nofollow
+
+    $nf = common_config('nofollow', 'external');
+
+    if ($nf == 'never') {
+        $attrs['rel'] = 'external';
+    } else {
+        $attrs['rel'] = 'nofollow external';
+    }
+
     return XMLStringer::estring('a', $attrs, $url);
 }
 
@@ -906,6 +917,33 @@ function common_shorten_links($text, $always = false)
     return common_replace_urls_callback($text, array('File_redirection', 'makeShort'));
 }
 
+/**
+ * Very basic stripping of invalid UTF-8 input text.
+ *
+ * @param string $str
+ * @return mixed string or null if invalid input
+ *
+ * @todo ideally we should drop bad chars, and maybe do some of the checks
+ *       from common_xml_safe_str. But we can't strip newlines, etc.
+ * @todo Unicode normalization might also be useful, but not needed now.
+ */
+function common_validate_utf8($str)
+{
+    // preg_replace will return NULL on invalid UTF-8 input.
+    //
+    // Note: empty regex //u also caused NULL return on some
+    // production machines, but none of our test machines.
+    //
+    // This should be replaced with a more reliable check.
+    return preg_replace('/\x00/u', '', $str);
+}
+
+/**
+ * Make sure an arbitrary string is safe for output in XML as a single line.
+ *
+ * @param string $str
+ * @return string
+ */
 function common_xml_safe_str($str)
 {
     // Replace common eol and extra whitespace input chars
@@ -937,8 +975,9 @@ function common_tag_link($tag)
     $canonical = common_canonical_tag($tag);
     if (common_config('singleuser', 'enabled')) {
         // regular TagAction isn't set up in 1user mode
+        $user = User::singleUser();
         $url = common_local_url('showstream',
-                                array('nickname' => common_config('singleuser', 'nickname'),
+                                array('nickname' => $user->nickname,
                                       'tag' => $canonical));
     } else {
         $url = common_local_url('tag', array('tag' => $canonical));
@@ -971,7 +1010,7 @@ function common_group_link($sender_id, $nickname)
         $attrs = array('href' => $group->permalink(),
                        'class' => 'url');
         if (!empty($group->fullname)) {
-            $attrs['title'] = $group->fullname . ' (' . $group->nickname . ')';
+            $attrs['title'] = $group->getFancyName();
         }
         $xs = new XMLStringer();
         $xs->elementStart('span', 'vcard');
@@ -1043,7 +1082,17 @@ function common_local_url($action, $args=null, $params=null, $fragment=null, $ad
 
 function common_is_sensitive($action)
 {
-    static $sensitive = array('login', 'register', 'passwordsettings', 'api');
+    static $sensitive = array(
+        'login',
+        'register',
+        'passwordsettings',
+        'api',
+        'ApiOauthRequestToken',
+        'ApiOauthAccessToken',
+        'ApiOauthAuthorize',
+        'ApiOauthPin',
+        'showapplication'
+    );
     $ssl = null;
 
     if (Event::handle('SensitiveAction', array($action, &$ssl))) {
@@ -1686,19 +1735,25 @@ function common_config($main, $sub)
             array_key_exists($sub, $config[$main])) ? $config[$main][$sub] : false;
 }
 
+/**
+ * Pull arguments from a GET/POST/REQUEST array with first-level input checks:
+ * strips "magic quotes" slashes if necessary, and kills invalid UTF-8 strings.
+ *
+ * @param array $from
+ * @return array
+ */
 function common_copy_args($from)
 {
     $to = array();
     $strip = get_magic_quotes_gpc();
     foreach ($from as $k => $v) {
-        if($strip) {
-            if(is_array($v)) {
-                $to[$k] = common_copy_args($v);
-            } else {
-                $to[$k] = stripslashes($v);
-            }
+        if(is_array($v)) {
+            $to[$k] = common_copy_args($v);
         } else {
-            $to[$k] = $v;
+            if ($strip) {
+                $v = stripslashes($v);
+            }
+            $to[$k] = strval(common_validate_utf8($v));
         }
     }
     return $to;

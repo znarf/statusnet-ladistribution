@@ -9,24 +9,31 @@ msgid ""
 msgstr ""
 "Project-Id-Version: StatusNet - TwitterBridge\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-09-27 22:20+0000\n"
-"PO-Revision-Date: 2010-09-27 22:42:59+0000\n"
+"POT-Creation-Date: 2010-11-04 18:25+0000\n"
+"PO-Revision-Date: 2010-11-04 18:29:22+0000\n"
 "Language-Team: Simplified Chinese <http://translatewiki.net/wiki/Portal:zh-"
 "hans>\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-POT-Import-Date: 1285-19-55 62::+0000\n"
-"X-Generator: MediaWiki 1.17alpha (r73828); Translate extension (2010-09-17)\n"
+"X-POT-Import-Date: 2010-10-29 16:14:11+0000\n"
+"X-Generator: MediaWiki 1.17alpha (r76004); Translate extension (2010-09-17)\n"
 "X-Translation-Project: translatewiki.net at http://translatewiki.net\n"
 "X-Language-Code: zh-hans\n"
 "X-Message-Group: #out-statusnet-plugin-twitterbridge\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: twitter.php:350
+#. TRANS: Message used to repeat a notice. RT is the abbreviation of 'retweet'.
+#. TRANS: %1$s is the repeated user's name, %2$s is the repeated notice.
+#: twitterimport.php:113
+#, php-format
+msgid "RT @%1$s %2$s"
+msgstr "RT @%1$s %2$s"
+
+#: twitter.php:349
 msgid "Your Twitter bridge has been disabled."
 msgstr "你的 Twitter bridge 已被禁用。"
 
-#: twitter.php:354
+#: twitter.php:353
 #, php-format
 msgid ""
 "Hi, %1$s. We're sorry to inform you that your link to Twitter has been "
@@ -52,7 +59,7 @@ msgstr ""
 "%3$s"
 
 #: TwitterBridgePlugin.php:151 TwitterBridgePlugin.php:174
-#: TwitterBridgePlugin.php:291 twitteradminpanel.php:52
+#: TwitterBridgePlugin.php:302 twitteradminpanel.php:52
 msgid "Twitter"
 msgstr "Twitter"
 
@@ -64,11 +71,11 @@ msgstr "使用 Twitter 登录或注册"
 msgid "Twitter integration options"
 msgstr "Twitter 整合选项"
 
-#: TwitterBridgePlugin.php:292
+#: TwitterBridgePlugin.php:303
 msgid "Twitter bridge configuration"
 msgstr "Twitter bridge 设置"
 
-#: TwitterBridgePlugin.php:316
+#: TwitterBridgePlugin.php:327
 msgid ""
 "The Twitter \"bridge\" plugin allows integration of a StatusNet instance "
 "with <a href=\"http://twitter.com/\">Twitter</a>."
@@ -364,25 +371,22 @@ msgstr "添加"
 msgid "Unexpected form submission."
 msgstr "未预料的表单提交。"
 
-#: twittersettings.php:254
+#: twittersettings.php:251
+msgid "No Twitter connection to remove."
+msgstr ""
+
+#: twittersettings.php:259
 msgid "Couldn't remove Twitter user."
 msgstr "无法删除 Twitter 用户。"
 
-#: twittersettings.php:258
+#: twittersettings.php:263
 msgid "Twitter account disconnected."
 msgstr "已取消 Twitter 帐号关联。"
 
-#: twittersettings.php:278 twittersettings.php:288
+#: twittersettings.php:283 twittersettings.php:294
 msgid "Couldn't save Twitter preferences."
 msgstr "无法保存 Twitter 参数设置。"
 
-#: twittersettings.php:292
+#: twittersettings.php:302
 msgid "Twitter preferences saved."
 msgstr "已保存 Twitter 参数设置。"
-
-#. TRANS: Message used to repeat a notice. RT is the abbreviation of 'retweet'.
-#. TRANS: %1$s is the repeated user's name, %2$s is the repeated notice.
-#: daemons/twitterstatusfetcher.php:264
-#, php-format
-msgid "RT @%1$s %2$s"
-msgstr "RT @%1$s %2$s"

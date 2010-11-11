@@ -1244,23 +1244,29 @@ class ApiAction extends Action
 
         // Do not emit error header for JSONP
         if (!isset($this->callback)) {
-            header('HTTP/1.1 '.$code.' '.$status_string);
+            header('HTTP/1.1 ' . $code . ' ' . $status_string);
         }
 
-        if ($format == 'xml') {
+        switch($format) {
+        case 'xml':
             $this->initDocument('xml');
             $this->elementStart('hash');
             $this->element('error', null, $msg);
             $this->element('request', null, $_SERVER['REQUEST_URI']);
             $this->elementEnd('hash');
             $this->endDocument('xml');
-        } elseif ($format == 'json'){
+            break;
+        case 'json':
             $this->initDocument('json');
             $error_array = array('error' => $msg, 'request' => $_SERVER['REQUEST_URI']);
             print(json_encode($error_array));
             $this->endDocument('json');
-        } else {
-
+            break;
+        case 'text':
+            header('Content-Type: text/plain; charset=utf-8');
+            print $msg;
+            break;
+        default:
             // If user didn't request a useful format, throw a regular client error
             throw new ClientException($msg, $code);
         }
@@ -1392,8 +1398,10 @@ class ApiAction extends Action
             if (is_numeric($this->arg('id'))) {
                 return Profile::staticGet($this->arg('id'));
             } else if ($this->arg('id')) {
+                // Screen names currently can only uniquely identify a local user.
                 $nickname = common_canonical_nickname($this->arg('id'));
-                return Profile::staticGet('nickname', $nickname);
+                $user = User::staticGet('nickname', $nickname);
+                return $user ? $user->getProfile() : null;
             } else if ($this->arg('user_id')) {
                 // This is to ensure that a non-numeric user_id still
                 // overrides screen_name even if it doesn't get used
@@ -1402,13 +1410,15 @@ class ApiAction extends Action
                 }
             } else if ($this->arg('screen_name')) {
                 $nickname = common_canonical_nickname($this->arg('screen_name'));
-                return Profile::staticGet('nickname', $nickname);
+                $user = User::staticGet('nickname', $nickname);
+                return $user ? $user->getProfile() : null;
             }
         } else if (is_numeric($id)) {
             return Profile::staticGet($id);
         } else {
             $nickname = common_canonical_nickname($id);
-            return Profile::staticGet('nickname', $nickname);
+            $user = User::staticGet('nickname', $nickname);
+            return $user ? $user->getProfile() : null;
         }
     }
 

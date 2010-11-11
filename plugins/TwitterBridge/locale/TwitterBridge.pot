@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-09-22 22:34+0000\n"
+"POT-Creation-Date: 2010-11-04 18:25+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,11 +16,18 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: twitter.php:350
+#. TRANS: Message used to repeat a notice. RT is the abbreviation of 'retweet'.
+#. TRANS: %1$s is the repeated user's name, %2$s is the repeated notice.
+#: twitterimport.php:113
+#, php-format
+msgid "RT @%1$s %2$s"
+msgstr ""
+
+#: twitter.php:349
 msgid "Your Twitter bridge has been disabled."
 msgstr ""
 
-#: twitter.php:354
+#: twitter.php:353
 #, php-format
 msgid ""
 "Hi, %1$s. We're sorry to inform you that your link to Twitter has been "
@@ -37,7 +44,7 @@ msgid ""
 msgstr ""
 
 #: TwitterBridgePlugin.php:151 TwitterBridgePlugin.php:174
-#: TwitterBridgePlugin.php:291 twitteradminpanel.php:52
+#: TwitterBridgePlugin.php:302 twitteradminpanel.php:52
 msgid "Twitter"
 msgstr ""
 
@@ -49,11 +56,11 @@ msgstr ""
 msgid "Twitter integration options"
 msgstr ""
 
-#: TwitterBridgePlugin.php:292
+#: TwitterBridgePlugin.php:303
 msgid "Twitter bridge configuration"
 msgstr ""
 
-#: TwitterBridgePlugin.php:316
+#: TwitterBridgePlugin.php:327
 msgid ""
 "The Twitter \"bridge\" plugin allows integration of a StatusNet instance "
 "with <a href=\"http://twitter.com/\">Twitter</a>."
@@ -342,25 +349,22 @@ msgstr ""
 msgid "Unexpected form submission."
 msgstr ""
 
-#: twittersettings.php:254
+#: twittersettings.php:251
+msgid "No Twitter connection to remove."
+msgstr ""
+
+#: twittersettings.php:259
 msgid "Couldn't remove Twitter user."
 msgstr ""
 
-#: twittersettings.php:258
+#: twittersettings.php:263
 msgid "Twitter account disconnected."
 msgstr ""
 
-#: twittersettings.php:278 twittersettings.php:288
+#: twittersettings.php:283 twittersettings.php:294
 msgid "Couldn't save Twitter preferences."
 msgstr ""
 
-#: twittersettings.php:292
+#: twittersettings.php:302
 msgid "Twitter preferences saved."
-msgstr ""
-
-#. TRANS: Message used to repeat a notice. RT is the abbreviation of 'retweet'.
-#. TRANS: %1$s is the repeated user's name, %2$s is the repeated notice.
-#: daemons/twitterstatusfetcher.php:264
-#, php-format
-msgid "RT @%1$s %2$s"
 msgstr ""

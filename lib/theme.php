@@ -38,7 +38,7 @@ if (!defined('STATUSNET') && !defined('LACONICA')) {
  * Themes are directories with some expected sub-directories and files
  * in them. They're found in either local/theme (for locally-installed themes)
  * or theme/ subdir of installation dir.
- * 
+ *
  * Note that the 'local' directory can be overridden as $config['local']['path']
  * and $config['local']['dir'] etc.
  *
@@ -51,7 +51,6 @@ if (!defined('STATUSNET') && !defined('LACONICA')) {
  * @license  http://www.fsf.org/licensing/licenses/agpl-3.0.html GNU Affero General Public License version 3.0
  * @link     http://status.net/
  */
-
 class Theme
 {
     var $name = null;
@@ -65,14 +64,14 @@ class Theme
      *
      * @param string $name Name of the theme; defaults to config value
      */
-
     function __construct($name=null)
     {
         if (empty($name)) {
             $name = common_config('site', 'theme');
         }
         if (!self::validName($name)) {
-            throw new ServerException("Invalid theme name.");
+            // TRANS: Server exception displayed if a theme name was invalid.
+            throw new ServerException(_('Invalid theme name.'));
         }
         $this->name = $name;
 
@@ -95,7 +94,6 @@ class Theme
         $fulldir = $instroot.'/'.$name;
 
         if (file_exists($fulldir) && is_dir($fulldir)) {
-
             $this->dir = $fulldir;
             $this->path = $this->relativeThemePath('theme', 'theme', $name);
         }
@@ -104,25 +102,57 @@ class Theme
     /**
      * Build a full URL to the given theme's base directory, possibly
      * using an offsite theme server path.
-     * 
+     *
      * @param string $group configuration section name to pull paths from
      * @param string $fallbackSubdir default subdirectory under INSTALLDIR
      * @param string $name theme name
-     * 
+     *
      * @return string URL
-     * 
+     *
      * @todo consolidate code with that for other customizable paths
      */
-
     protected function relativeThemePath($group, $fallbackSubdir, $name)
     {
-        $path = common_config($group, 'path');
+        if (StatusNet::isHTTPS()) {
+            $sslserver = common_config($group, 'sslserver');
 
-        if (empty($path)) {
-            $path = common_config('site', 'path') . '/';
-            if ($fallbackSubdir) {
-                $path .= $fallbackSubdir . '/';
+            if (empty($sslserver)) {
+                if (is_string(common_config('site', 'sslserver')) &&
+                    mb_strlen(common_config('site', 'sslserver')) > 0) {
+                    $server = common_config('site', 'sslserver');
+                } else if (common_config('site', 'server')) {
+                    $server = common_config('site', 'server');
+                }
+                $path   = common_config('site', 'path') . '/';
+                if ($fallbackSubdir) {
+                    $path .= $fallbackSubdir . '/';
+                }
+            } else {
+                $server = $sslserver;
+                $path   = common_config($group, 'sslpath');
+                if (empty($path)) {
+                    $path = common_config($group, 'path');
+                }
             }
+
+            $protocol = 'https';
+        } else {
+            $path = common_config($group, 'path');
+
+            if (empty($path)) {
+                $path = common_config('site', 'path') . '/';
+                if ($fallbackSubdir) {
+                    $path .= $fallbackSubdir . '/';
+                }
+            }
+
+            $server = common_config($group, 'server');
+
+            if (empty($server)) {
+                $server = common_config('site', 'server');
+            }
+
+            $protocol = 'http';
         }
 
         if ($path[strlen($path)-1] != '/') {
@@ -133,27 +163,7 @@ class Theme
             $path = '/'.$path;
         }
 
-        $server = common_config($group, 'server');
-
-        if (empty($server)) {
-            $server = common_config('site', 'server');
-        }
-
-        $ssl = common_config($group, 'ssl');
-
-        if (is_null($ssl)) { // null -> guess
-            if (common_config('site', 'ssl') == 'always' &&
-                !common_config($group, 'server')) {
-                $ssl = true;
-            } else {
-                $ssl = false;
-            }
-        }
-
-        $protocol = ($ssl) ? 'https' : 'http';
-
-        $path = $protocol . '://'.$server.$path.$name;
-        return $path;
+        return $protocol.'://'.$server.$path.$name;
     }
 
     /**
@@ -163,7 +173,6 @@ class Theme
      *
      * @return string full pathname, like /var/www/mublog/theme/default/logo.png
      */
-
     function getFile($relative)
     {
         return $this->dir.'/'.$relative;
@@ -176,7 +185,6 @@ class Theme
      *
      * @return string full URL, like 'http://example.com/theme/default/logo.png'
      */
-
     function getPath($relative)
     {
         return $this->path.'/'.$relative;
@@ -221,7 +229,7 @@ class Theme
     /**
      * Pull data from the theme's theme.ini file.
      * @fixme calling getFile will fall back to default theme, this may be unsafe.
-     * 
+     *
      * @return associative array of strings
      */
     function getMetadata()
@@ -242,7 +250,6 @@ class Theme
      *
      * @return string File path to the theme file
      */
-
     static function file($relative, $name=null)
     {
         $theme = new Theme($name);
@@ -257,7 +264,6 @@ class Theme
      *
      * @return string URL of the file
      */
-
     static function path($relative, $name=null)
     {
         $theme = new Theme($name);
@@ -269,7 +275,6 @@ class Theme
      *
      * @return array list of available theme names
      */
-
     static function listAvailable()
     {
         $local   = self::subdirsOf(self::localRoot());
@@ -289,7 +294,6 @@ class Theme
      *
      * @return array relative filenames of subdirs, or empty array
      */
-
     protected static function subdirsOf($dir)
     {
         $subdirs = array();
@@ -314,7 +318,6 @@ class Theme
      *
      * @return string local root dir for themes
      */
-
     protected static function localRoot()
     {
         $basedir = common_config('local', 'dir');
@@ -331,7 +334,6 @@ class Theme
      *
      * @return string root dir for StatusNet themes
      */
-
     protected static function installRoot()
     {
         $instroot = common_config('theme', 'dir');

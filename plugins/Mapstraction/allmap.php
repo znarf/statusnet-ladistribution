@@ -61,12 +61,7 @@ class AllmapAction extends MapAction
 
     function title()
     {
-        if (!empty($this->profile->fullname)) {
-            // @todo FIXME: Bad i18n. Should be "%1$s (%2$s)".
-            $base = $this->profile->fullname . ' (' . $this->user->nickname . ') ';
-        } else {
-            $base = $this->user->nickname;
-        }
+        $base = $this->profile->getFancyName();
 
         if ($this->page == 1) {
             // TRANS: Page title.
@@ -77,7 +72,7 @@ class AllmapAction extends MapAction
             // @todo CHECKME: does this even happen? May not be needed.
             // TRANS: Page title.
             // TRANS: %1$s is a user nickname, %2$d is a page number.
-            return sprintf(_m("%1$s friends map, page %2$d"),
+            return sprintf(_m('%1$s friends map, page %2$d'),
                            $base,
                            $this->page);
         }

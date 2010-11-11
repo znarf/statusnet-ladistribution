@@ -37,6 +37,7 @@ $default =
               'path' => $_path,
               'logfile' => null,
               'logo' => null,
+              'ssllogo' => null,
               'logdebug' => false,
               'fancy' => false,
               'locale_path' => INSTALLDIR.'/locale',
@@ -211,6 +212,8 @@ $default =
         array('server' => null,
               'dir' => INSTALLDIR . '/file/',
               'path' => $_path . '/file/',
+              'sslserver' => null,
+              'sslpath' => null,
               'ssl' => null,
               'supported' => array('image/png',
                                    'image/jpeg',
@@ -299,6 +302,7 @@ $default =
                                  'WikiHashtags' => null,
                                  'RSSCloud' => null,
                                  'OpenID' => null),
+              'locale_path' => false, // Set to a path to use *instead of* each plugin's own locale subdirectories
               ),
         'admin' =>
         array('panels' => array('design', 'site', 'user', 'paths', 'access', 'sessions', 'sitenotice', 'license')),
@@ -314,7 +318,8 @@ $default =
         'nofollow' =>
         array('subscribers' => true,
               'members' => true,
-              'peopletag' => true),
+              'peopletag' => true,
+              'external' => 'sometimes'), // Options: 'sometimes', 'never', default = 'sometimes'
         'http' => // HTTP client settings when contacting other sites
         array('ssl_cafile' => false, // To enable SSL cert validation, point to a CA bundle (eg '/usr/lib/ssl/certs/ca-certificates.crt')
               'curl' => false, // Use CURL backend for HTTP fetches if available. (If not, PHP's socket streams will be used.)

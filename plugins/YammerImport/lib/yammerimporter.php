@@ -41,13 +41,22 @@ class YammerImporter
     function importUser($item)
     {
         $data = $this->prepUser($item);
+        $nickname = $data['options']['nickname'];
 
         $profileId = $this->findImportedUser($data['orig_id']);
         if ($profileId) {
             return Profile::staticGet('id', $profileId);
         } else {
-            $user = User::register($data['options']);
-            $profile = $user->getProfile();
+            $user = User::staticGet('nickname', $nickname);
+            if ($user) {
+                common_log(LOG_WARN, "Copying Yammer profile info onto existing user $nickname");
+                $profile = $user->getProfile();
+                $this->savePropertiesOn($profile, $data['options'],
+                        array('fullname', 'homepage', 'bio', 'location'));
+            } else {
+                $user = User::register($data['options']);
+                $profile = $user->getProfile();
+            }
             if ($data['avatar']) {
                 try {
                     $this->saveAvatar($data['avatar'], $profile);
@@ -69,12 +78,21 @@ class YammerImporter
     function importGroup($item)
     {
         $data = $this->prepGroup($item);
+        $nickname = $data['options']['nickname'];
 
         $groupId = $this->findImportedGroup($data['orig_id']);
         if ($groupId) {
             return User_group::staticGet('id', $groupId);
         } else {
-            $group = User_group::register($data['options']);
+            $local = Local_group::staticGet('nickname', $nickname);
+            if ($local) {
+                common_log(LOG_WARN, "Copying Yammer group info onto existing group $nickname");
+                $group = User_group::staticGet('id', $local->group_id);
+                $this->savePropertiesOn($group, $data['options'],
+                        array('fullname', 'description'));
+            } else {
+                $group = User_group::register($data['options']);
+            }
             if ($data['avatar']) {
                 try {
                     $this->saveAvatar($data['avatar'], $group);
@@ -85,6 +103,19 @@ class YammerImporter
             $this->recordImportedGroup($data['orig_id'], $group->id);
             return $group;
         }
+    }
+
+    private function savePropertiesOn($target, $options, $propList)
+    {
+        $changed = 0;
+        $orig = clone($target);
+        foreach ($propList as $prop) {
+            if (!empty($options[$prop]) && $target->$prop != $options[$prop]) {
+                $target->$prop = $options[$prop];
+                $changed++;
+            }
+        }
+        $target->update($orig);
     }
 
     /**
@@ -101,6 +132,7 @@ class YammerImporter
         if ($noticeId) {
             return Notice::staticGet('id', $noticeId);
         } else {
+            $notice = Notice::staticGet('uri', $data['options']['uri']);
             $content = $data['content'];
             $user = User::staticGet($data['profile']);
 
@@ -249,8 +281,11 @@ class YammerImporter
         $options['mainpage'] = common_local_url('showgroup',
                                    array('nickname' => $options['nickname']));
 
+        // Set some default vals or User_group::register will whine
+        $options['homepage'] = '';
+        $options['location'] = '';
+        $options['aliases'] = array();
         // @fixme what about admin user for the group?
-        // bio? homepage etc? aliases?
 
         $options['local'] = true;
         return array('orig_id' => $origId,
@@ -287,7 +322,7 @@ class YammerImporter
         }
         $options['created'] = $this->timestamp($item['created_at']);
 
-        if ($item['group_id']) {
+        if (!empty($item['group_id'])) {
             $groupId = $this->findImportedGroup($item['group_id']);
             if ($groupId) {
                 $options['groups'] = array($groupId);
@@ -401,18 +436,23 @@ class YammerImporter
         // @fixme this should be better encapsulated
         // ripped from oauthstore.php (for old OMB client)
         $temp_filename = tempnam(sys_get_temp_dir(), 'listener_avatar');
-        if (!copy($url, $temp_filename)) {
-            throw new ServerException(sprintf(_m("Unable to fetch avatar from %s."), $url));
-        }
+        try {
+            if (!copy($url, $temp_filename)) {
+                throw new ServerException(sprintf(_m("Unable to fetch avatar from %s."), $url));
+            }
 
-        $id = $dest->id;
-        // @fixme should we be using different ids?
-        $imagefile = new ImageFile($id, $temp_filename);
-        $filename = Avatar::filename($id,
-                                     image_type_to_extension($imagefile->type),
-                                     null,
-                                     common_timestamp());
-        rename($temp_filename, Avatar::path($filename));
+            $id = $dest->id;
+            // @fixme should we be using different ids?
+            $imagefile = new ImageFile($id, $temp_filename);
+            $filename = Avatar::filename($id,
+                                         image_type_to_extension($imagefile->type),
+                                         null,
+                                         common_timestamp());
+            rename($temp_filename, Avatar::path($filename));
+        } catch (Exception $e) {
+            unlink($temp_filename);
+            throw $e;
+        }
         // @fixme hardcoded chmod is lame, but seems to be necessary to
         // keep from accidentally saving images from command-line (queues)
         // that can't be read from web server, which causes hard-to-notice
